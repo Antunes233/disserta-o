@@ -1,0 +1,13 @@
+{% extends "main.html" %}
+{% load static %}
+
+{% block title %}New Session{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/sessionreview.css' %}">
+
+<h1>{{patient.name}} session number {{session.session_id}}</h1>
+
+<p>{{session.session_results}}</p>
+
+{% endblock %}

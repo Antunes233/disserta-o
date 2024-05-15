@@ -1,0 +1,47 @@
+<!-- Your HTML template (e.g., patient_details.html) -->
+
+{% extends "main.html" %}
+{% load static %}
+
+{% block title %}Patient Info{% endblock %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/patient_info.css' %}">
+
+    <div class="patient-container">
+        <h1>{{ patient.name }} </h1>
+
+
+        <div class="patient-info" id="patient-info">
+            <p>Patient Number: {{ patient.pacient_number }}<br>
+            Phone Number: {{ patient.phone_number }}<br>
+            Height: {{ patient.height }}<br>
+            Weight: {{ patient.weight }}<br>
+            Age: {{ patient.age }}<br>
+            Gender: {{ patient.gender }}</p>
+        </div>
+
+
+    </div>
+    <div class="linha"></div>
+
+    <div class="session_links">
+
+        <div class="grid">
+            <div class="column_1">Session</div>
+            <div class="column_2">Session Date</div>
+            {% for session in sessions %}
+                <div class="name"><a href="{{ patient.id }}/session_{{session.id}}">  New Session </a></div>
+                <div class="number">{{ session.date }}</div>
+
+            {%endfor%}
+        </div>
+
+    </div>
+
+    <div class="botão_sessão">
+        <a href="{{ patient.id }}/new_session"> <p> New Session<p\> </a>
+    </div>
+
+{% endblock %}
+

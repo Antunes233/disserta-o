@@ -1,0 +1,42 @@
+{% extends "main.html" %}
+{% load static %}
+
+{% block title %}New Session{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/new_session.css' %}">
+<script src="{% static 'js/session.js' %}"></script>
+<script>
+    function EndSession() {
+        // Redirect to another URL when the countdown finishes
+        window.history.go(-1);
+    }
+
+</script>
+<!-- ------------------------------------------------------------------------------  -->
+<h1 class="title">New Gait Session for {{patient.name}}</h1>
+
+<div class="info">
+    <p>
+        The session consists in a normal gait analysis while the patient
+        walks in a normal velocity during x time.
+    </p>
+    <p>Once the session end the data is sent to the database and is 
+        processed.
+    </p>
+</div>
+
+<!-- ^Butão para iniciar a sessão -->
+<!-- <button id="botão_sessão", onclick="sendMessage()">Begin session</button>
+<button id="go_back", onclick="EndSession()">End session</button> -->
+
+<form method="post">
+    {% csrf_token %}
+    <input type="submit" name="botão_sessão" value="Begin Session">
+    <input type="submit" name="go_back" value="End session">
+</form>
+{% if message %}
+    <p>{{ message }}</p>
+{% endif %}
+
+{% endblock %}

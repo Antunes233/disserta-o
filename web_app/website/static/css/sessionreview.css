@@ -1,0 +1,7 @@
+body{
+    background-image: linear-gradient(to left,rgb(47, 161, 255),rgb(74, 74, 244));
+    font-family: Arial, sans-serif;
+    display: flex; /* Add display:flex to the body */
+    justify-content: space-between; /* Align items at the start and end of the flex container */
+    align-items: flex-start;
+}

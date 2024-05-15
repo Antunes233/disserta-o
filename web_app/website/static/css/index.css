@@ -1,0 +1,77 @@
+body {
+    font-family: Arial, sans-serif;
+    background-image: linear-gradient(to left,rgb(47, 161, 255),rgb(74, 74, 244));
+    /* display: flex; */
+    /* justify-content: center; */
+    align-items: center;
+    /* height: 100vh; */
+}
+
+form {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 100%;
+    margin-left: 35%;
+    margin-bottom: 50%;
+}
+
+p{
+  text-align: center;  
+}
+
+h2 {
+    text-align: center;
+    color: #000000;
+    font-size: 2.5em; /* Increase font size */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Change font */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* Add text shadow */
+    /* letter-spacing: 2px; Add letter spacing for a decorative touch */
+
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    /* margin-bottom: 16px; */
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+input[type="submit"] {
+    background-color: #4caf50;
+    color: white;
+    cursor: pointer;
+    border: none; /* Remove border for cleaner appearance */
+}
+
+input[type="submit"]:hover {
+    background-color: #45a049;
+}
+
+/* Add a little extra style to make the form more visually appealing */
+form {
+    transition: transform 0.3s ease;
+     /* Add a smooth transition effect */:;
+    -webkit-transition: transform 0.3s ease;
+    -moz-transition: transform 0.3s ease;
+    -ms-transition: transform 0.3s ease;
+    -o-transition: transform 0.3s ease;
+}
+
+form:hover {
+    transform: scale(1.01);
+     /* Zoom in slightly on hover */:;
+    -webkit-transform: scale(1.01);
+    -moz-transform: scale(1.01);
+    -ms-transform: scale(1.01);
+    -o-transform: scale(1.01);
+}

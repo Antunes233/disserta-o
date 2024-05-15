@@ -1,0 +1,36 @@
+body{
+    background-image: linear-gradient(to left,rgb(47, 161, 255),rgb(74, 74, 244));
+    font-family: Arial, sans-serif;
+    display: flex; /* Add display:flex to the body */
+    justify-content: space-between; /* Align items at the start and end of the flex container */
+    align-items: flex-start;
+}
+
+.title{
+    font-size: 50px;
+    position: fixed;
+    left: 20px;
+    
+}
+
+.info{
+    font-size: 30px;
+    border-color: black;
+    border-style: solid;
+    background-color: white;
+    margin-right: 100px;
+    position: fixed;
+    left: 20px;
+    top: 200px;
+}
+
+#timer{
+    font-size: 30px;
+    color: black;
+    border-color: black;
+    border-style: solid;
+    background-color: white;
+    position: fixed;
+    right: 20px;
+    top: 50px;
+}
