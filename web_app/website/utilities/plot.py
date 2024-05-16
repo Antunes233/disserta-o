@@ -23,7 +23,7 @@ def generate_plot(x, y):
     graph = generate_graph()
 
     return graph
-    
+
 
 def generate_graph() -> None:
     buffer = BytesIO()

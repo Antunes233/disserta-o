@@ -8,6 +8,7 @@
 
 <h1>{{patient.name}} session number {{session.session_id}}</h1>
 
-<p>{{session.session_results}}</p>
+<!-- <p>{{session.session_results}}</p> -->
 
+<img src="data:image/png;base64,{{ plot_data }}">
 {% endblock %}

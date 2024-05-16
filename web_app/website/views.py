@@ -21,7 +21,9 @@ from django.http import JsonResponse
 import paho.mqtt.client as mqtt
 import web_app.settings as settings
 from django.template.loader import render_to_string
-from .mqtt.mqtt import on_connect, disconnect, is_connected, connection_status
+from .mqtt.mqtt import on_connect, disconnect
+from io import BytesIO
+import base64
 
 # Create your views here.
 BASE_DIR = settings.BASE_DIR
@@ -136,17 +138,18 @@ def PatientSession(request, id):
     def on_message(mqtt_client, userdata, msg):
 
         print(msg.topic+" "+str(msg.payload))
-        Sessions.objects.create(Pacient=patient, session_id = num, session_results = msg.payload.decode())
+        if msg.payload.decode() == 'End':
+            Sessions.objects.create(Pacient=patient, session_id = num, session_results = final_data)
+            final_data.clear()
+        else:
+            final_data.append(float(msg.payload.decode()))
 
-
+    final_data = []
     if request.method == "POST":
         if 'botão_sessão' in request.POST:
 
             mqtt_client.loop_start()
             mqtt_client.connect(settings.MQTT_SERVER, settings.MQTT_PORT)
-
-
-            mqtt_client.publish("django/gait_values", "1")
 
             mqtt_client.on_connect = on_connect
 
@@ -157,12 +160,13 @@ def PatientSession(request, id):
             message = "Session started"
 
         if 'go_back' in request.POST:
+            mqtt_client.loop_stop()
             disconnect(mqtt_client)
             return HttpResponseRedirect('/details/patient/'+str(id))
 
     context = {
-        "minutes": minutes,
-        "seconds": seconds,
+        # "minutes": minutes,
+        # "seconds": seconds,
         "patient": patient,
         "message": message,
     }
@@ -173,8 +177,17 @@ def SessionReview(request, id, session_id):
     session = Sessions.objects.get(id=session_id)
     patient = Pacient.objects.get(id=id)
     template = loader.get_template("sessionreview.html")
+
+    plot = generate_plot(list(range(199)), list(session.session_results[1:200]))
+
+    buf = BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plot_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+
     context = {
         "session": session,
         "patient": patient,
+        "plot_data": plot_data,
     }
     return HttpResponse(template.render(context, request))
