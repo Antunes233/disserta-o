@@ -177,8 +177,9 @@ def SessionReview(request, id, session_id):
     session = Sessions.objects.get(id=session_id)
     patient = Pacient.objects.get(id=id)
     template = loader.get_template("sessionreview.html")
-
-    plot = generate_plot(list(range(199)), list(session.session_results[1:200]))
+    data = session.session_results.strip('[]').split(',')
+    data_list = [float(i) for i in data]
+    plot = generate_plot(list(range(200)), data_list)
 
     buf = BytesIO()
     plt.savefig(buf, format='png')
