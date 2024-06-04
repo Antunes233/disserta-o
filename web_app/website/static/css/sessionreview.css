@@ -5,3 +5,15 @@ body{
     justify-content: space-between; /* Align items at the start and end of the flex container */
     align-items: flex-start;
 }
+
+.left_knee {
+    position: fixed;
+    left: 20px;
+    top: 100px;
+}
+
+.back-button{
+    position: fixed;
+    right: 20px;
+
+}

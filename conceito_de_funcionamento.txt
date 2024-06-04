@@ -1,0 +1,8 @@
+The user (Doctor) must login in the web app to access the main page. Then the user need to select one patient from the list of patients.
+To begin a session the user must press the New Session button that will redirect to a new page with a start session button.
+The user ask the patient to dress the kneepad and walk for around 2 minutes to get used to it.
+To begin the session the user must press the start button.
+When the start button is pressed a messages is sent to the kneepad via MQTT protocol and a beep is played.
+When the beep is played the patient must start walking during all the session so the values sent from the arduino to the web app are all usable.
+When the session ends another beep is played.
+Then the patient may undress the kneepad. Meanwhile the values are already available to in the web app for analysis.

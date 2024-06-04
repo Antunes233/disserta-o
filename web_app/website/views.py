@@ -179,12 +179,18 @@ def SessionReview(request, id, session_id):
     template = loader.get_template("sessionreview.html")
     data = session.session_results.strip('[]').split(',')
     data_list = [float(i) for i in data]
-    plot = generate_plot(list(range(200)), data_list)
+    plot = generate_plot(list(np.arange(0,100,(100/len(data_list)))), data_list)
 
     buf = BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
     plot_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    if request.method == "POST":
+        if 'go_back' in request.POST:
+            mqtt_client.loop_stop()
+            disconnect(mqtt_client)
+            return HttpResponseRedirect('/details/patient/'+str(id))
 
     context = {
         "session": session,
