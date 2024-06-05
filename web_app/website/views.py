@@ -24,6 +24,7 @@ from django.template.loader import render_to_string
 from .mqtt.mqtt import on_connect, disconnect
 from io import BytesIO
 import base64
+from .form import PatientForm
 
 # Create your views here.
 BASE_DIR = settings.BASE_DIR
@@ -54,10 +55,24 @@ def Details(request, id):
         currentYear, currentMonth).replace(
             '<td ', '<td  width="50" height="50"')
 
+
+    if request.method == 'POST':
+        form = PatientForm(request.POST)
+        if form.is_valid():
+            pacient = form.save(commit=False)
+            pacient.doc = doc  # Associate the patient with the doctor
+            pacient.save()
+            return redirect('/details/patient/'+str(pacient.id))
+        else:
+            print(form.errors)  # Print form errors to the console for debugging
+    else:
+        form = PatientForm()
+
     context = {
         "mydoc": doc,
         "pacients": pacients,
         "calendar": calendar,
+        "form": form,
 
     }
     return HttpResponse(template.render(context, request))
@@ -86,6 +101,7 @@ def Login(request):
 
 def Patientinfo(request, id):
     patient = Pacient.objects.get(id=id)
+    doc = Doctor.objects.get(id=patient.doc_id)
     template = loader.get_template("patientinfo.html")
     session = Sessions.objects.filter(Pacient_id=id)
     if patient.gender == 'Male':
@@ -96,6 +112,10 @@ def Patientinfo(request, id):
         knee_angle_curve = model(torch.tensor([[patient.age, gender, patient.weight, patient.height]]))
     smoothed_curve = savgol_filter(knee_angle_curve[0].cpu().detach().numpy(), 15, 4)
     plot = generate_plot(list(range(100)), smoothed_curve)
+
+    if request.method == 'POST':
+        if 'go_home' in request.POST:
+            return redirect('/details/' + str(doc.id))
 
     # mqtt_client.disconnect(client)
 
