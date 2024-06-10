@@ -8,29 +8,30 @@
 
     <div class="top-bar">
         <h1>{{ patient.name }}</h1>
-
-        <div class="patient-info" id="patient-info">
-            <p>Patient Number: {{ patient.pacient_number }}</p>
-            <p>Phone Number: {{ patient.phone_number }}</p>
-            <p>Height: {{ patient.height }}</p>
-            <p>Weight: {{ patient.weight }}</p>
-            <p>Age: {{ patient.age }}</p>
-            <p>Gender: {{ patient.gender }}</p>
+        <div class="buttons">
+            <button class="botão_sessão" onclick="window.location.href='{{ patient.id }}/new_session'">New Session</button>
+            <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="submit" name="go_home" value="Back to homepage" class="common-style">
+            </form>
         </div>
+    </div>
 
-        <button class="botão_sessão" onclick="window.location.href='{{ patient.id }}/new_session'">New Session</button>
-        <form method="post">
-            {% csrf_token %}
-            <input type="submit" name="go_home" value="Back to homepage" class="common-style">
-        </form>
+    <div class="patient-info" id="patient-info">
+        <p><strong>Patient Number:</strong> {{ patient.patient_number }}</p>
+        <p><strong>Phone Number:</strong> {{ patient.phone_number }}</p>
+        <p><strong>Height:</strong> {{ patient.height }}</p>
+        <p><strong>Weight:</strong> {{ patient.weight }}</p>
+        <p><strong>Age:</strong> {{ patient.age }}</p>
+        <p><strong>Gender:</strong> {{ patient.gender }}</p>
     </div>
 
     <div class="session_links">
         <div class="grid">
-            <div class="column_1">Session</div>
-            <div class="column_2">Session Date</div>
+            <div class="column_1"><strong>Session</strong></div>
+            <div class="column_2"><strong>Session Date</strong></div>
             {% for session in sessions %}
-                <div class="name"><a href="{{ patient.id }}/session_{{session.id}}">New Session</a></div>
+                <div class="name"><a href="{{ patient.id }}/session_{{session.id}}">Session {{ session.session_id }}</a></div>
                 <div class="number">{{ session.date }}</div>
             {% endfor %}
         </div>

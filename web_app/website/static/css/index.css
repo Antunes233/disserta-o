@@ -1,77 +1,116 @@
-body {
-    font-family: Arial, sans-serif;
-    background-image: linear-gradient(to left,rgb(47, 161, 255),rgb(74, 74, 244));
-    /* display: flex; */
-    /* justify-content: center; */
-    align-items: center;
-    /* height: 100vh; */
-}
-
-form {
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    max-width: 400px;
-    width: 100%;
-    margin-left: 35%;
-    margin-bottom: 50%;
-}
-
-p{
-  text-align: center;  
-}
-
-h2 {
-    text-align: center;
-    color: #000000;
-    font-size: 2.5em; /* Increase font size */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Change font */
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* Add text shadow */
-    /* letter-spacing: 2px; Add letter spacing for a decorative touch */
-
-}
-
-label {
-    display: block;
-    margin-bottom: 8px;
-}
-
-input {
-    width: 100%;
-    padding: 8px;
-    /* margin-bottom: 16px; */
+/* Reset some default styles */
+* {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
 }
 
-input[type="submit"] {
-    background-color: #4caf50;
+/* Apply a background color to the whole page */
+body {
+    background-color: #e6f7ff; /* Light blue background for a calming medical look */
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    flex-direction: column; /* Stack elements vertically */
+    align-items: center; /* Center items horizontally */
+    padding: 20px; /* Add padding to the body */
+}
+
+/* Style the top bar */
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Distribute items evenly */
+    width: 100%;
+    background-color: #ffffff;
+    padding: 15px 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px; /* Add margin to separate from other elements */
+    border-radius: 8px; /* Rounded corners */
+}
+
+/* Style the header */
+.top-bar h1 {
+    color: #333333;
+    font-size: 24px; /* Adjust the font size as needed */
+    font-weight: 600;
+}
+
+/* Container for buttons in the top bar */
+.top-bar .buttons {
+    display: flex;
+    gap: 10px; /* Space between buttons */
+    margin-left: auto; /* Push the buttons to the right */
+}
+
+/* Style the button */
+.common-style {
+    background-color: #007bff; /* Blue for trust and professionalism */
     color: white;
+    font-size: 16px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
-    border: none; /* Remove border for cleaner appearance */
+    text-align: center;
+    transition: background-color 0.3s;
 }
 
-input[type="submit"]:hover {
-    background-color: #45a049;
+.common-style:hover {
+    background-color: #0056b3; /* Darker blue on hover */
 }
 
-/* Add a little extra style to make the form more visually appealing */
-form {
-    transition: transform 0.3s ease;
-     /* Add a smooth transition effect */:;
-    -webkit-transition: transform 0.3s ease;
-    -moz-transition: transform 0.3s ease;
-    -ms-transition: transform 0.3s ease;
-    -o-transition: transform 0.3s ease;
+/* Style the login container */
+.login-container {
+    background-color: #ffffff;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 100%;
+    max-width: 400px; /* Adjust width as needed */
+    text-align: center;
 }
 
-form:hover {
-    transform: scale(1.01);
-     /* Zoom in slightly on hover */:;
-    -webkit-transform: scale(1.01);
-    -moz-transform: scale(1.01);
-    -ms-transform: scale(1.01);
-    -o-transform: scale(1.01);
+/* Style the form */
+.login-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Space between form elements */
+}
+
+/* Style the input fields */
+.login-container input[type=text], .login-container input[type=password] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #f1f1f1;
+}
+
+/* When the inputs get focus, do something */
+.login-container input[type=text]:focus, .login-container input[type=password]:focus {
+    background-color: #ddd;
+    outline: none;
+}
+
+/* Style the submit button */
+.login-container .btn {
+    background-color: #007bff; /* Blue for trust and professionalism */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.3s;
+}
+
+/* Add some hover effects to buttons */
+.login-container .btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+/* Style the password reset link */
+.login-container .password-reset-link {
+    text-align: center;
+    margin-top: 10px;
 }

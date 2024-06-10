@@ -6,20 +6,18 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/sessionreview.css' %}">
 
-<h1>{{patient.name}} session number {{session.session_id}}</h1>
+<div class="top-bar">
+    <h1>{{patient.name}} session {{session.session_id}}</h1>
+    <div class="buttons">
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="submit" name="go_back" value="Back to patient page" class="common-style">
+        </form>
+    </div>
+</div>
 
-<!-- <p>{{session.session_results}}</p> -->
 <div class="left_knee">
     <img src="data:image/png;base64,{{ plot_data }}">
 </div>
-
-
-<div class="back-button">
-    <form method="post">
-        {% csrf_token %}
-        <input type="submit" name="go_back" value="Back to patient page">
-    </form>
-</div>
-
 
 {% endblock %}

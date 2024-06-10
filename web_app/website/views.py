@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
-from .models import Doctor, Pacient, Sessions
+from .models import Doctor, Patient, Sessions
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 import calendar
 from calendar import HTMLCalendar
@@ -25,6 +26,10 @@ from .mqtt.mqtt import on_connect, disconnect
 from io import BytesIO
 import base64
 from .form import PatientForm
+import logging
+from django.utils import timezone
+from .backends import DoctorBackend
+from django.contrib.auth.models import User
 
 # Create your views here.
 BASE_DIR = settings.BASE_DIR
@@ -36,46 +41,7 @@ model.load_state_dict(torch.load(model_path))
 # Initialize MQTT client
 mqtt_client = mqtt.Client()
 
-
-
-def index(request):
-    doc = Doctor.objects.all()
-    doc.update()
-    return HttpResponse(render(request, "index.html"))
-
-
-def Details(request, id):
-    doc = Doctor.objects.get(id=id)
-    template = loader.get_template("details.html")
-    pacients = Pacient.objects.filter(doc=doc)
-    currentMonth = datetime.now().month
-    currentYear = datetime.now().year
-    day = datetime.now().day
-    calendar = HTMLCalendar().formatmonth(
-        currentYear, currentMonth).replace(
-            '<td ', '<td  width="50" height="50"')
-
-
-    if request.method == 'POST':
-        form = PatientForm(request.POST)
-        if form.is_valid():
-            pacient = form.save(commit=False)
-            pacient.doc = doc  # Associate the patient with the doctor
-            pacient.save()
-            return redirect('/details/patient/'+str(pacient.id))
-        else:
-            print(form.errors)  # Print form errors to the console for debugging
-    else:
-        form = PatientForm()
-
-    context = {
-        "mydoc": doc,
-        "pacients": pacients,
-        "calendar": calendar,
-        "form": form,
-
-    }
-    return HttpResponse(template.render(context, request))
+logger = logging.getLogger(__name__)
 
 
 def Login(request):
@@ -83,27 +49,70 @@ def Login(request):
         username = request.POST["username"]
         password = request.POST["password"]
 
-        # Perform manual authentication (you may want to use a more secure method in production)
-        try:
-            user = Doctor.objects.get(name=username, password=password)
+        # Use the custom authentication backend
+        user = DoctorBackend().authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user, backend='website.backends.DoctorBackend')
+            # Debug statement to verify user is authenticated
+            print(f"User {user.name} authenticated successfully.")
+            doc = Doctor.objects.get(name=username, password=password)
             # Successful login, redirect to a different view or page
-            return redirect("details/" + str(user.id))
-        except Doctor.DoesNotExist:
+            return redirect("details/" + str(doc.id))
+        else:
             # Invalid credentials, display an error message
-            return render(
-                request, "loginpage.html", {"error": "Invalid username or password"}
-            )
+            return render(request, "loginpage.html", {"error": "Invalid username or password"})
 
     # Render the login page
     return render(request, "loginpage.html")
 
 
 
+def Details(request, id):
+    try:
+        doc = Doctor.objects.get(id=id)
+        patients = Patient.objects.filter(doc=doc)
+        currentMonth = timezone.now().month
+        currentYear = timezone.now().year
+        day = timezone.now().day
+        doc.last_login = timezone.now()
+        doc.save()
+        calendar = HTMLCalendar().formatmonth(
+            currentYear, currentMonth).replace(
+                '<td ', '<td  width="50" height="50"')
+
+
+        if request.method == 'POST':
+            form = PatientForm(request.POST)
+            if form.is_valid():
+                patient = form.save(commit=False)
+                patient.doc = doc  # Associate the patient with the doctor
+                patient.save()
+                return redirect('/details/patient/'+str(patient.id))
+            else:
+                print(form.errors)  # Print form errors to the console for debugging
+        else:
+            form = PatientForm()
+
+        context = {
+            "doc": doc,
+            "patients": patients,
+            "calendar": calendar,
+            "form": form,
+
+        }
+        template = loader.get_template("details.html")
+        return HttpResponse(template.render(context, request))
+    except Exception as e:
+        logger.error(f"Error loading details: {e}")
+        return HttpResponse(render(request, "error.html"))
+
+
+
 def Patientinfo(request, id):
-    patient = Pacient.objects.get(id=id)
+    patient = Patient.objects.get(id=id)
     doc = Doctor.objects.get(id=patient.doc_id)
     template = loader.get_template("patientinfo.html")
-    session = Sessions.objects.filter(Pacient_id=id)
+    session = Sessions.objects.filter(Patient_id=id)
     if patient.gender == 'Male':
         gender = 1
     else:
@@ -131,7 +140,7 @@ def Patientinfo(request, id):
 def PatientSession(request, id):
     message = None
     mqtt_client = mqtt.Client()
-    patient = Pacient.objects.get(id=id)
+    patient = Patient.objects.get(id=id)
     template = loader.get_template("patientsession.html")
 
     # # Get the current time
@@ -150,16 +159,16 @@ def PatientSession(request, id):
     # minutes = int(remaining_seconds // 60)
     # seconds = int(remaining_seconds % 60)
 
-    num = int(patient.seesion_num)
+    num = int(patient.session_num)
     num = num + 1
-    patient.seesion_num = num
+    patient.session_num = num
     patient.save()
 
     def on_message(mqtt_client, userdata, msg):
 
         print(msg.topic+" "+str(msg.payload))
         if msg.payload.decode() == 'End':
-            Sessions.objects.create(Pacient=patient, session_id = num, session_results = final_data)
+            Sessions.objects.create(Patient=patient, session_id = num, session_results = final_data)
             final_data.clear()
         else:
             final_data.append(float(msg.payload.decode()))
@@ -195,7 +204,7 @@ def PatientSession(request, id):
 
 def SessionReview(request, id, session_id):
     session = Sessions.objects.get(id=session_id)
-    patient = Pacient.objects.get(id=id)
+    patient = Patient.objects.get(id=id)
     template = loader.get_template("sessionreview.html")
     data = session.session_results.strip('[]').split(',')
     data_list = [float(i) for i in data]

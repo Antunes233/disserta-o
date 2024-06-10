@@ -53,6 +53,10 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
+# Ensure you have the following settings for session management
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_NAME = 'sessionid'
+
 ROOT_URLCONF = "web_app.urls"
 
 TEMPLATES = [
@@ -73,6 +77,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "web_app.wsgi.application"
 ASGI_APPLICATION = "web_app.asgi.application"
+
+# AUTH_USER_MODEL = 'website.Doctor'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
@@ -103,6 +109,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'website.backends.DoctorBackend',
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
@@ -131,7 +141,10 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
+# MQTT 
 MQTT_SERVER = 'broker.emqx.io'
 MQTT_PORT = 1883
 
+# Logout 
+# Redirect to the homepage after logout
+LOGOUT_REDIRECT_URL = '/'

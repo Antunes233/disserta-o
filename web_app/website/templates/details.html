@@ -6,39 +6,54 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/details.css' %}">
 <script src="{% static 'js/regist_popup.js' %}"></script>
-{% if user.is_authenticated %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var today = new Date();
+        var day = today.getDate();
+        var cells = document.querySelectorAll(".cal td");
+        cells.forEach(function(cell) {
+            if (cell.textContent == day) {
+                cell.classList.add("current-day");
+            }
+        });
+    });
+</script>
+
 
 <div class="top-bar">
-  <h1 class="name">Welcome Doctor {{ mydoc.name }}!</h1>
+    <h1 class="name">Welcome Doctor {{ doc.name }}!</h1>
+    <div class="buttons">
+        <button class="open-button" onclick="openForm()">Register New Patient</button>
+        <form method="post" action="{% url 'logout' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="common-style">Logout</button>
+        </form>
+    </div>
 </div>
 
 <div class="cal">{{ calendar|safe }}</div>
 
 <div class="big-box">
-  <h2>Pacientes</h2>
-  <div class="grid">
-    <div class="column_1">Name</div>
-    <div class="column_2">Pacient Number</div>
-    {% for pacient in pacients %}
-    <div class="name"><a href="patient/{{ pacient.id }}">{{ pacient.name }}</a></div>
-    <div class="number">{{ pacient.pacient_number }}</div>
-    {%endfor%}
-  </div>
+    <h2>Patients</h2>
+    <div class="grid">
+        <div class="column_1">Name</div>
+        <div class="column_2">Patient Number</div>
+        {% for patient in patients %}
+        <div class="name"><a href="patient/{{ patient.id }}">{{ patient.name }}</a></div>
+        <div class="number">{{ patient.patient_number }}</div>
+        {% endfor %}
+    </div>
 </div>
-
-
-
-<!-- A button to open the popup form -->
-<button class="open-button" onclick="openForm()">Register New Patient</button>
 
 <!-- The form -->
 <div class="form-popup" id="myForm">
-  <form id="registerForm" class="form-container" method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn">Register</button>
-    <button type="button" class="btn cancel" onclick="closeForm()">Cancel</button>
-  </form>
+    <form id="registerForm" class="form-container" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn">Register</button>
+        <button type="button" class="btn cancel" onclick="closeForm()">Cancel</button>
+    </form>
 </div>
-{% endif %}
+
+
 {% endblock %}

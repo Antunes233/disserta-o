@@ -1,6 +1,5 @@
 import paho.mqtt.client as mqtt
 import web_app.settings as settings
-from website.models import Pacient, Sessions
 
 
 def on_connect(client, userdata, flags, rc):

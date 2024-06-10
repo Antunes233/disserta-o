@@ -14,27 +14,32 @@
 
 </script>
 <!-- ------------------------------------------------------------------------------  -->
-<h1 class="title">New Gait Session for {{patient.name}}</h1>
+<div class="top-bar">
+    <h1 class="title">New Gait Session for {{patient.name}}</h1>
 
+    <div class="buttons">
+        <form method="post">
+            {% csrf_token %}
+            <input type="submit" name="botão_sessão" value="Begin Session">
+            <input type="submit" name="go_back" value="End session">
+        </form>
+    </div>
+</div>
 <div class="info">
     <p>
         The session consists in a normal gait analysis while the patient
         walks in a normal velocity during x time.
     </p>
-    <p>Once the session end the data is sent to the database and is 
+    <p>Once the session end the data is sent to the database and is
         processed.
+    </p>
+    <p>To start the session please press the "Begin Session" button located
+        in the top right side of the page. To end the session please process
+        the button "End session" located next to the "Begin session" button.
     </p>
 </div>
 
-<!-- ^Butão para iniciar a sessão -->
-<!-- <button id="botão_sessão", onclick="sendMessage()">Begin session</button>
-<button id="go_back", onclick="EndSession()">End session</button> -->
 
-<form method="post">
-    {% csrf_token %}
-    <input type="submit" name="botão_sessão" value="Begin Session">
-    <input type="submit" name="go_back" value="End session">
-</form>
 {% if message %}
     <p>{{ message }}</p>
 {% endif %}
