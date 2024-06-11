@@ -78,7 +78,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "web_app.wsgi.application"
 ASGI_APPLICATION = "web_app.asgi.application"
 
-# AUTH_USER_MODEL = 'website.Doctor'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases

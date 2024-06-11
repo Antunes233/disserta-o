@@ -7,7 +7,6 @@ from .models import Doctor, Patient, Sessions
 class DoctorAdmin(admin.ModelAdmin):
     list_display = ("name", "id_number")
 
-
 class PatientAdmin(admin.ModelAdmin):
     list_display = ("name", "patient_number")
 

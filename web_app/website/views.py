@@ -30,6 +30,7 @@ import logging
 from django.utils import timezone
 from .backends import DoctorBackend
 from django.contrib.auth.models import User
+import random
 
 # Create your views here.
 BASE_DIR = settings.BASE_DIR
@@ -85,7 +86,8 @@ def Details(request, id):
             form = PatientForm(request.POST)
             if form.is_valid():
                 patient = form.save(commit=False)
-                patient.doc = doc  # Associate the patient with the doctor
+                patient.doc = doc # Associate the patient with the doctor
+                patient.patient_number = random.randint(1, 9999999)
                 patient.save()
                 return redirect('/details/patient/'+str(patient.id))
             else:
@@ -158,9 +160,12 @@ def PatientSession(request, id):
     # # Calculate minutes and seconds
     # minutes = int(remaining_seconds // 60)
     # seconds = int(remaining_seconds % 60)
+    if patient.session_num == None:
+        num = 1
+    else:
+        num = int(patient.session_num)
+        num = num + 1
 
-    num = int(patient.session_num)
-    num = num + 1
     patient.session_num = num
     patient.save()
 
@@ -176,7 +181,14 @@ def PatientSession(request, id):
     final_data = []
     if request.method == "POST":
         if 'botão_sessão' in request.POST:
+            if patient.session_num == None:
+                num = 1
+            else:
+                num = int(patient.session_num)
+                num = num + 1
 
+            patient.session_num = num
+            patient.save()
             mqtt_client.loop_start()
             mqtt_client.connect(settings.MQTT_SERVER, settings.MQTT_PORT)
 
