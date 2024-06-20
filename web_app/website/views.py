@@ -31,6 +31,7 @@ from django.utils import timezone
 from .backends import DoctorBackend
 from django.contrib.auth.models import User
 import random
+from django.contrib.admin.views.decorators import staff_member_required
 
 # Create your views here.
 BASE_DIR = settings.BASE_DIR
@@ -44,6 +45,9 @@ mqtt_client = mqtt.Client()
 
 logger = logging.getLogger(__name__)
 
+
+def custom_admin_page(request):
+    return render(request, 'admin/custom_admin_page.html')
 
 def Login(request):
     if request.method == "POST":
@@ -122,7 +126,7 @@ def Patientinfo(request, id):
     with torch.no_grad():
         knee_angle_curve = model(torch.tensor([[patient.age, gender, patient.weight, patient.height]]))
     smoothed_curve = savgol_filter(knee_angle_curve[0].cpu().detach().numpy(), 15, 4)
-    plot = generate_plot(list(range(100)), smoothed_curve)
+    # plot = generate_plot(list(range(100)), smoothed_curve)
 
     if request.method == 'POST':
         if 'go_home' in request.POST:
@@ -132,7 +136,7 @@ def Patientinfo(request, id):
 
     context = {
         "patient": patient,
-        "plot_data": plot,
+        # "plot_data": plot,
         "sessions": session,
     }
     return HttpResponse(template.render(context, request))
@@ -166,19 +170,30 @@ def PatientSession(request, id):
         num = int(patient.session_num)
         num = num + 1
 
-    patient.session_num = num
-    patient.save()
 
     def on_message(mqtt_client, userdata, msg):
 
         print(msg.topic+" "+str(msg.payload))
-        if msg.payload.decode() == 'End':
-            Sessions.objects.create(Patient=patient, session_id = num, session_results = final_data)
-            final_data.clear()
-        else:
-            final_data.append(float(msg.payload.decode()))
 
-    final_data = []
+        if msg.topic == "django/gait_values_r":
+            if msg.payload.decode() == 'End':
+                session.session_results_r = str(final_data_r)
+                session.save()
+                final_data_r.clear()
+            else:
+                final_data_r.append(float(msg.payload.decode()))
+        elif msg.topic == "django/gait_values_l":
+            if msg.payload.decode() == 'End':
+                session.session_results_l = str(final_data_l)
+                session.save()
+                final_data_l.clear()
+                end_message.append("Session End")
+            else:
+                final_data_l.append(float(msg.payload.decode()))
+
+    final_data_r = []
+    final_data_l = []
+    end_message = []
     if request.method == "POST":
         if 'botão_sessão' in request.POST:
             if patient.session_num == None:
@@ -189,6 +204,7 @@ def PatientSession(request, id):
 
             patient.session_num = num
             patient.save()
+            session = Sessions.objects.create(Patient=patient, session_id = num)
             mqtt_client.loop_start()
             mqtt_client.connect(settings.MQTT_SERVER, settings.MQTT_PORT)
 
@@ -210,6 +226,7 @@ def PatientSession(request, id):
         # "seconds": seconds,
         "patient": patient,
         "message": message,
+        "end_message": end_message,
     }
     return HttpResponse(template.render(context, request))
 
@@ -218,9 +235,12 @@ def SessionReview(request, id, session_id):
     session = Sessions.objects.get(id=session_id)
     patient = Patient.objects.get(id=id)
     template = loader.get_template("sessionreview.html")
-    data = session.session_results.strip('[]').split(',')
-    data_list = [float(i) for i in data]
-    plot = generate_plot(list(np.arange(0,100,(100/len(data_list)))), data_list)
+    data_r = session.session_results_r.strip('[]').split(',')
+    data_l = session.session_results_l.strip('[]').split(',')
+    data_list_r = [float(i) for i in data_r]
+    data_list_l = [float(i) for i in data_l]
+
+    plot = generate_plot(x=list(np.arange(0,100,(100/len(data_list_r)))), y_r=data_list_r,y_l= data_list_l)
 
     buf = BytesIO()
     plt.savefig(buf, format='png')

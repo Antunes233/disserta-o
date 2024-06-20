@@ -16,8 +16,31 @@
     </div>
 </div>
 
-<div class="left_knee">
-    <img src="data:image/png;base64,{{ plot_data }}">
+<div id="container">
+    <img id="main_plot" src="data:image/png;base64,{{ plot_data }}" >
 </div>
 
-{% endblock %}
+
+<script>
+    const myimg = document.getElementById("main_plot");
+    const container = document.getElementById("container");
+
+    container.addEventListener("mousemove", onZoom);
+    container.addEventListener("mouseleave", offZoom);
+    container.addEventListener("mouseover", onZoom);
+
+    function onZoom(e) {
+        const rect = container.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        myimg.style.transformOrigin = `${x}px ${y}px`;
+        myimg.style.transform = `scale(2)`;
+    }
+
+    function offZoom(e) {
+        myimg.style.transformOrigin = `center center`;
+        myimg.style.transform = `scale(1)`;
+    }
+</script>
+{% endblock %}e

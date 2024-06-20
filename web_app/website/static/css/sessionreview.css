@@ -59,10 +59,18 @@ body {
 }
 
 /* Style the image container */
-.left_knee {
-    margin-top: 20px;
+#container {
+    margin-top: 100px;
     background-color: #ffffff;
     padding: 20px;
     border-radius: 8px; /* Rounded corners */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+#main_plot {
+    transition: transform 0.2s ease; /* Smooth transition for the zoom effect */
+    display: block; /* Ensure the image is a block element */
+    max-width: 100%; /* Ensure the image does not exceed the container's width */
 }

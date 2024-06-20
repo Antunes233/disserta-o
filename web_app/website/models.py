@@ -36,8 +36,9 @@ class Sessions(models.Model):
 
     Patient = models.ForeignKey(Patient,on_delete=models.CASCADE)
     session_id = models.IntegerField(null=True)
-    session_results = models.CharField(max_length=5000,null=True)
+    session_results_r = models.CharField(max_length=5000,null=True)
+    session_results_l = models.CharField(max_length=5000,null=True)
     date = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.session_id} {self.date} {self.Pacient}"
+        return f"{self.session_id} {self.date} {self.Patient}"

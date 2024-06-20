@@ -6,7 +6,8 @@ def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT Broker!")
         client.publish("django/confirm", "Begin Session")
-        client.subscribe("django/gait_values")
+        client.subscribe("django/gait_values_r")
+        client.subscribe("django/gait_values_l")
     else:
         print("Failed to connect, return code %d\n", rc)
 
