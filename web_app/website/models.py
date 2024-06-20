@@ -39,6 +39,8 @@ class Sessions(models.Model):
     session_results_r = models.CharField(max_length=5000,null=True)
     session_results_l = models.CharField(max_length=5000,null=True)
     date = models.DateTimeField(default=timezone.now)
+    notes = models.TextField(null=True, blank=True)
+    session_time = models.IntegerField(null=True)
 
     def __str__(self):
         return f"{self.session_id} {self.date} {self.Patient}"

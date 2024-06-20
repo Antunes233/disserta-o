@@ -21,6 +21,17 @@
 </div>
 
 
+<!-- Add a form for session notes -->
+<div class="notes-section">
+    <h2>Session Notes</h2>
+    <form method="post">
+        {% csrf_token %}
+        <textarea name="session_notes" rows="5" cols="50" placeholder="Write your notes here...">{{ session.notes }}</textarea>
+        <br>
+        <input type="submit" value="Save Notes">
+    </form>
+</div>
+
 <script>
     const myimg = document.getElementById("main_plot");
     const container = document.getElementById("container");
@@ -43,4 +54,4 @@
         myimg.style.transform = `scale(1)`;
     }
 </script>
-{% endblock %}e
+{% endblock %}

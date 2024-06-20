@@ -240,7 +240,7 @@ def SessionReview(request, id, session_id):
     data_list_r = [float(i) for i in data_r]
     data_list_l = [float(i) for i in data_l]
 
-    plot = generate_plot(x=list(np.arange(0,100,(100/len(data_list_r)))), y_r=data_list_r,y_l= data_list_l)
+    plot = generate_plot(x=list(np.arange(0,len(data_list_r)/100,((len(data_list_r)/100)/len(data_list_r)))), y_r=data_list_r,y_l= data_list_l)
 
     buf = BytesIO()
     plt.savefig(buf, format='png')
@@ -252,6 +252,10 @@ def SessionReview(request, id, session_id):
             mqtt_client.loop_stop()
             disconnect(mqtt_client)
             return HttpResponseRedirect('/details/patient/'+str(id))
+
+    if request.method == 'POST':
+        session.notes = request.POST.get('session_notes', '')
+        session.save()
 
     context = {
         "session": session,

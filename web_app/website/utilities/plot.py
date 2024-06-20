@@ -17,7 +17,7 @@ def generate_plot(x, y_r,y_l):
     plt.figure(figsize=(15, 3))
     plt.plot(x, y_r, color='red',label='right knee')
     plt.plot(x, y_l, color='blue', label='left knee')
-    plt.xlabel('Gait Cycle (%)')
+    plt.xlabel('Time (seconds)')
     plt.ylabel('Knee Angle (degrees)')
     plt.legend()
     plt.tight_layout()
