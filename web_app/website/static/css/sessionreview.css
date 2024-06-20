@@ -118,3 +118,18 @@ body {
 .notes-section .save-notes-button:hover {
     background-color: #0056b3;
 }
+
+.zoom-control {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.zoom-control label {
+    font-size: 1.2em;
+    margin-right: 10px;
+}
+
+.zoom-control input[type="checkbox"] {
+    transform: scale(1.5);
+}

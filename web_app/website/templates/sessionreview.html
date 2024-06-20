@@ -32,26 +32,37 @@
     </form>
 </div>
 
+<!-- Add a checkbox to enable/disable zoom -->
+<div class="zoom-control">
+    <label for="zoom-checkbox">Enable Zoom</label>
+    <input type="checkbox" id="zoom-checkbox">
+</div>
+
 <script>
     const myimg = document.getElementById("main_plot");
     const container = document.getElementById("container");
+    const zoomCheckbox = document.getElementById("zoom-checkbox");
+
+    function onZoom(e) {
+        if (zoomCheckbox.checked) {
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            myimg.style.transformOrigin = `${x}px ${y}px`;
+            myimg.style.transform = `scale(1.5)`;
+        }
+    }
+
+    function offZoom(e) {
+        if (zoomCheckbox.checked) {
+            myimg.style.transformOrigin = `center center`;
+            myimg.style.transform = `scale(1)`;
+        }
+    }
 
     container.addEventListener("mousemove", onZoom);
     container.addEventListener("mouseleave", offZoom);
     container.addEventListener("mouseover", onZoom);
-
-    function onZoom(e) {
-        const rect = container.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        myimg.style.transformOrigin = `${x}px ${y}px`;
-        myimg.style.transform = `scale(1.5)`;
-    }
-
-    function offZoom(e) {
-        myimg.style.transformOrigin = `center center`;
-        myimg.style.transform = `scale(1)`;
-    }
 </script>
 {% endblock %}
