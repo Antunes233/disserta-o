@@ -76,7 +76,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "web_app.wsgi.application"
-ASGI_APPLICATION = "web_app.asgi.application"
+ASGI_APPLICATION = 'web_app.asgi.application'
 
 
 # Database
@@ -141,7 +141,7 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # MQTT 
-MQTT_SERVER = 'broker.emqx.io'
+MQTT_SERVER = 'test.mosquitto.org'
 MQTT_PORT = 1883
 
 # Logout 

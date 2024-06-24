@@ -55,9 +55,111 @@ body {
 
 /* Style for the info section */
 .info {
-    font-size: 30px;
-    border-color: black;
-    border-style: solid;
+    font-size: 16px; /* Adjust font size */
+    border: 1px solid black; /* Add border */
     background-color: white;
     margin: 100px 20px 20px 20px; /* Adjust margins for spacing */
-    padding: 20px; /* Add paddin
+    padding: 20px; /* Add padding */
+    border-radius: 5px; /* Add rounded corners */
+}
+
+/* Style for the lists inside the info box */
+.info ol, .info ul {
+    margin-left: 20px; /* Indent the list */
+    padding-left: 20px; /* Add padding to the left */
+}
+
+/* Style for the list items */
+.info li {
+    margin-top: 10px;
+    margin-bottom: 10px; /* Add space between list items */
+}
+
+/* Style for the start message */
+#start-message {
+    background-color: #dff0d8; /* Light green background */
+    color: #3c763d; /* Dark green text */
+    border: 1px solid #d6e9c6; /* Green border */
+    padding: 10px;
+    margin: 20px;
+    border-radius: 5px;
+}
+
+/* Style for the progress message */
+#progress-message {
+    background-color: #f6ff00; /* Light yellow background */
+    color: #abab25; /* Dark yellow text */
+    border: 1px solid #fbff00; /* Yellow border */
+    padding: 10px;
+    margin: 20px;
+    border-radius: 5px;
+}
+
+/* Style for the end message */
+#end-message {
+    background-color: #f2dede; /* Light red background */
+    color: #a94442; /* Dark red text */
+    border: 1px solid #ebccd1; /* Red border */
+    padding: 10px;
+    margin: 20px;
+    border-radius: 5px;
+}
+
+
+/* Notification container */
+.notification {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 20px;
+    top: 20px;
+    background-color: #444; /* Dark background */
+    color: white; /* White text */
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Optional: Add a subtle shadow */
+}
+
+/* Close button */
+.notification .close {
+    color: white;
+    float: right;
+    font-size: 20px;
+    font-weight: bold;
+    margin-left: 15px;
+    cursor: pointer;
+}
+
+.notification .close:hover,
+.notification .close:focus {
+    color: #bbb;
+    text-decoration: none;
+}
+
+
+#warning {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%; /* Full width */
+    max-width: 600px; /* Max width */
+    background-color: #f44336; /* Red background */
+    color: white; /* White text */
+    text-align: center; /* Centered text */
+    padding: 20px; /* Some padding */
+    border-radius: 10px; /* Rounded corners */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Add a shadow */
+}
+
+#warning .close {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: white;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}

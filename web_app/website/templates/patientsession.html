@@ -12,8 +12,44 @@
         window.history.go(-1);
     }
 
+    // document.addEventListener("DOMContentLoaded", function() {
+    //     // Get the notification
+    //     var notification = document.getElementById("notification");
+
+    //     // Get the button that shows the notification
+    //     var endSessionBtn = document.getElementById("end_session");
+
+    //     // Get the <span> element that closes the notification
+    //     var span = document.getElementsByClassName("close")[0];
+
+    //     // When the user clicks the button, show the notification
+    //     endSessionBtn.onclick = function(event) {
+    //         event.preventDefault(); // Prevent the form from submitting immediately
+    //         notification.style.display = "block";
+    //         console.log("Notification displayed"); // Debugging line
+    //         // Automatically hide the notification after 5 seconds
+    //         setTimeout(function() {
+    //             notification.style.display = "none";
+    //             // Submit the form after the notification is shown
+    //             endSessionBtn.closest('form').submit();
+    //         }, 5000);
+    //     }
+
+    //     // When the user clicks on <span> (x), close the notification
+    //     span.onclick = function() {
+    //         notification.style.display = "none";
+    //     }
+
+    //     // Show notification if it exists
+    //     if (notification && notification.style.display !== "none") {
+    //         setTimeout(function() {
+    //             notification.style.display = "none";
+    //         }, 5000);
+    //     }
+    // });
+
 </script>
-<!-- ------------------------------------------------------------------------------  -->
+
 <div class="top-bar">
     <h1 class="title">New Gait Session for {{patient.name}}</h1>
 
@@ -21,31 +57,75 @@
         <form method="post">
             {% csrf_token %}
             <input type="submit" name="botão_sessão" value="Begin Session">
-            <input type="submit" name="go_back" value="End session">
+            <input type="submit" id="end_session" name="end_session" value="End Session">
+            <input type="submit" name="progress" value="Check Progress">
+            <input type="submit" name="go_back" value="Back to Patient Page">
         </form>
     </div>
 </div>
+</div>
+
 <div class="info">
     <p>
         The session consists in a normal gait analysis while the patient
-        walks in a normal velocity during x time.
+        walks at a normal velocity during a certain period of time.
     </p>
-    <p>Once the session end the data is sent to the database and is
+    <br>
+    <p>
+        Once the session ends the data is sent to the database and is
         processed.
     </p>
-    <p>To start the session please press the "Begin Session" button located
-        in the top right side of the page. To end the session please process
-        the button "End session" located next to the "Begin session" button.
+    <br>
+    <p>
+        To start the session please press the "Begin Session" button located
+        in the top right side of the page. To end the session please press
+        the button "End session" located next to the "Begin session" button. Before
+        returning to the patient page please press the "Check Progress" button to check if
+        the data was received from the knee brace. If the data is still being processed 
+        a message saying "Waiting for data..." will be displayed whe the button "Check Progress"
+        is pressed, otherwise the message "Session Completed" will be displayed.
     </p>
+    <br>
+    <h4>Steps to begin the session</h4>
+    <ol>
+        <li>Stretch the knee brace to its maximum and turn on the device</li>
+        <li>Wait for the device connects successfully to the WiFi (green led will stop blinking)</li>
+        <li>Ask the patient to dress the knee braces and walk for a short period of time so they get used to it</li>
+        <li>When ready, press the "Begin Session" button</li>
+    </ol>
+
 </div>
 
+<!-- The Notification -->
 
-{% if message %}
-    <p>{{ message }}</p>
+<!-- <div id="notification" class="notification">
+    <span class="close">&times;</span>
+        <p>{{notification_pop}}</p>
+</div> -->
+
+
+{% if end_message %}
+    <p id="progress-message">{{ end_message }}</p>
 {% endif %}
 
-{%if end_message %}
-    <p>{{ end_message }}</p>
-{%endif%}
+{% if end_session %}
+    <p id="end-message">{{ end_session }}</p>
+{% endif %}
 
+{% if message %}
+    <p id="start-message">{{ message }}</p>
+{% endif %}
+
+{% if notification %}
+    <p id="warning">{{ notification }}</p>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var notification = document.getElementById("warning");
+            notification.style.display = "block";
+            setTimeout(function() {
+                notification.style.display = "none";
+            }, 5000);
+        });
+    </script>
+{% endif %}
 {% endblock %}

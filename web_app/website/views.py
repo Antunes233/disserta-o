@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
 from .models import Doctor, Patient, Sessions
@@ -15,14 +16,14 @@ import os
 from django.conf import settings
 from .models_ml.knee_model import KneeFlexionModel
 import numpy as np
-from .utilities.plot import generate_plot
+from .utilities.plot import generate_plot, generate_expected_curve
 from scipy.signal import savgol_filter
 import json
 from django.http import JsonResponse
 import paho.mqtt.client as mqtt
 import web_app.settings as settings
 from django.template.loader import render_to_string
-from .mqtt.mqtt import on_connect, disconnect
+from .mqtt.mqtt import disconnect
 from io import BytesIO
 import base64
 from .form import PatientForm
@@ -142,97 +143,155 @@ def Patientinfo(request, id):
     return HttpResponse(template.render(context, request))
 
 
+#-----------------------------------------------------------------------------------------------------------------
+mqtt_client = mqtt.Client()
 
+mqtt_flag = False
+final_data_r = ""
+final_data_l = ""
+qos = 0
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        client.subscribe("django/gait_values_left", qos=1)
+        client.subscribe("django/gait_values_right", qos=1)
+    else:
+        logger.error(f"Failed to connect to MQTT broker, return code {rc}")
+
+def on_message(client, userdata, msg):
+    global final_data_r, final_data_l
+
+    if msg.topic == "django/gait_values_right":
+        if msg.payload.decode() == 'End':
+            print("Session ended for right leg")
+            session = Sessions.objects.filter(session_status_r="Ongoing").last()
+            session.session_results_r = final_data_r
+            session.session_status_r = "Completed"
+            session.save()
+
+            publish(client, "Received", "django/confirm")
+        else:
+            if final_data_r == "":
+                final_data_r = msg.payload.decode()
+            else:
+                final_data_r = final_data_r + "," + msg.payload.decode()
+
+    elif msg.topic == "django/gait_values_left":
+        if msg.payload.decode() == 'End':
+            print("Session ended for left leg")
+            session = Sessions.objects.filter(session_status_l="Ongoing").last()
+            session.session_results_l = final_data_l
+            session.session_status_l = "Completed"
+            session.save()
+
+        else:
+            if final_data_l == "":
+                final_data_l = msg.payload.decode()
+            else:
+                final_data_l = final_data_l + "," + msg.payload.decode()
+
+
+def publish(client, msg, topic):
+
+        result = client.publish(topic, msg, qos=2,retain=False)
+        # result: [0, 1]
+        status = result[0]
+        if status == 0:
+            print(f"Send `{msg}` to topic `{topic}`")
+        else:
+            print(f"Failed to send message to topic {topic}")
+
+mqtt_client.on_connect = on_connect
 def PatientSession(request, id):
     message = None
-    mqtt_client = mqtt.Client()
+    global mqtt_client
     patient = Patient.objects.get(id=id)
     template = loader.get_template("patientsession.html")
+    session_going = None
+    end_session = None
+    notification = None
+    notification_pop = None
 
-    # # Get the current time
-    # current_time = datetime.now()
-
-    # # Calculate the end time of the countdown (5 minutes from now)
-    # end_time = current_time + timedelta(minutes=5)
-
-    # # Calculate the remaining time
-    # remaining_time = end_time - current_time
-
-    # # Convert remaining time to seconds
-    # remaining_seconds = remaining_time.total_seconds()
-
-    # # Calculate minutes and seconds
-    # minutes = int(remaining_seconds // 60)
-    # seconds = int(remaining_seconds % 60)
-    if patient.session_num == None:
-        num = 1
-    else:
-        num = int(patient.session_num)
-        num = num + 1
-
-
-    def on_message(mqtt_client, userdata, msg):
-
-        print(msg.topic+" "+str(msg.payload))
-
-        if msg.topic == "django/gait_values_r":
-            if msg.payload.decode() == 'End':
-                session.session_results_r = str(final_data_r)
-                session.save()
-                final_data_r.clear()
-            else:
-                final_data_r.append(float(msg.payload.decode()))
-        elif msg.topic == "django/gait_values_l":
-            if msg.payload.decode() == 'End':
-                session.session_results_l = str(final_data_l)
-                session.save()
-                final_data_l.clear()
-                end_message.append("Session End")
-            else:
-                final_data_l.append(float(msg.payload.decode()))
-
-    final_data_r = []
-    final_data_l = []
-    end_message = []
+    mqtt_client.on_message = on_message
     if request.method == "POST":
+        global mqtt_flag
+        # global mqtt_client
         if 'botão_sessão' in request.POST:
-            if patient.session_num == None:
-                num = 1
+            if mqtt_flag == False:
+                if patient.session_num == None:
+                    num = 1
+                else:
+                    num = int(patient.session_num)
+                    num = num + 1
+
+                patient.session_num = num
+                patient.save()
+                session = Sessions.objects.create(Patient=patient, session_id = num)
+                mqtt_flag = True
+                mqtt_client.connect(settings.MQTT_SERVER, settings.MQTT_PORT)
+                mqtt_client.loop_start()
+
+                publish(mqtt_client, "Begin", "django/confirm")
+                mqtt_client.on_message = on_message
+                # Start MQTT client loop (this function will block)
+                message = "Session started"
             else:
-                num = int(patient.session_num)
-                num = num + 1
-
-            patient.session_num = num
-            patient.save()
-            session = Sessions.objects.create(Patient=patient, session_id = num)
-            mqtt_client.loop_start()
-            mqtt_client.connect(settings.MQTT_SERVER, settings.MQTT_PORT)
-
-            mqtt_client.on_connect = on_connect
-
-            mqtt_client.on_message = on_message
-            # Start MQTT client loop (this function will block)
+                notification = "You already have a session going"
 
 
-            message = "Session started"
+        if 'progress' in request.POST:
+            if mqtt_flag == True:
+                session_data = Sessions.objects.get(Patient=patient, session_id=patient.session_num)
+                if session_data.session_status_r == "Completed" and session_data.session_status_l == "Completed":
+                    end_session = "Session Completed"
+                    mqtt_flag = False
+                else:
+                    session_going = "Waiting for data..."
+            else:
+                notification = "No progress to check"
+
+        if 'end_session' in request.POST:
+            if mqtt_flag == True:
+                if mqtt_client.is_connected():
+                    publish(mqtt_client,"End", "django/confirm")
+                    notification = "Session is ending... please wait for data retrieval"
+                else:
+                    mqtt_client.connect(settings.MQTT_SERVER, settings.MQTT_PORT)
+                    if mqtt_client.is_connected():
+                        publish(mqtt_client,"End", "django/confirm")
+                        notification = "Session is ending... please wait for data retrieval"
+                    else:
+                        notification = "MQTT client is not connected"
+            else:
+                notification = "No session in place"
+
 
         if 'go_back' in request.POST:
-            mqtt_client.loop_stop()
-            disconnect(mqtt_client)
-            return HttpResponseRedirect('/details/patient/'+str(id))
+            if mqtt_flag == False:
+                mqtt_client.loop_stop()
+                disconnect(mqtt_client)
+                return HttpResponseRedirect('/details/patient/'+str(id))
+            else:
+                notification = "Wait for session to end"
 
     context = {
         # "minutes": minutes,
         # "seconds": seconds,
         "patient": patient,
         "message": message,
-        "end_message": end_message,
+        "end_message": session_going,
+        "end_session": end_session,
+        "notification": notification,
+        "notification_pop": notification_pop,
     }
     return HttpResponse(template.render(context, request))
 
 
+#-------------------------------------------------------------------------------------------------------------------------------
+
+
+
 def SessionReview(request, id, session_id):
-    session = Sessions.objects.get(id=session_id)
+    session = Sessions.objects.get(Patient = id, id=session_id)
     patient = Patient.objects.get(id=id)
     template = loader.get_template("sessionreview.html")
     data_r = session.session_results_r.strip('[]').split(',')
@@ -240,17 +299,21 @@ def SessionReview(request, id, session_id):
     data_list_r = [float(i) for i in data_r]
     data_list_l = [float(i) for i in data_l]
 
-    plot = generate_plot(x=list(np.arange(0,len(data_list_r)/100,((len(data_list_r)/100)/len(data_list_r)))), y_r=data_list_r,y_l= data_list_l)
+    plot = generate_plot(x1=list(np.arange(0,len(data_list_r)/100,((len(data_list_r)/100)/len(data_list_r)))),
+                         x2=list(np.arange(0,len(data_list_l)/100,((len(data_list_l)/100)/len(data_list_l)))),
+                         y_r=data_list_r,y_l= data_list_l)
 
-    buf = BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    plot_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+    if patient.gender == 'Male':
+        gender = 1
+    else:
+        gender = 0
+    with torch.no_grad():
+        knee_angle_curve = model(torch.tensor([[patient.age, gender, patient.weight, patient.height]]))
+    smoothed_curve = savgol_filter(knee_angle_curve[0].cpu().detach().numpy(), 15, 4)
+    plot_expected = generate_expected_curve(list(range(100)), smoothed_curve)
 
     if request.method == "POST":
         if 'go_back' in request.POST:
-            mqtt_client.loop_stop()
-            disconnect(mqtt_client)
             return HttpResponseRedirect('/details/patient/'+str(id))
 
     if request.method == 'POST':
@@ -260,6 +323,7 @@ def SessionReview(request, id, session_id):
     context = {
         "session": session,
         "patient": patient,
-        "plot_data": plot_data,
+        "plot_data": plot,
+        "expected_curve": plot_expected,
     }
     return HttpResponse(template.render(context, request))

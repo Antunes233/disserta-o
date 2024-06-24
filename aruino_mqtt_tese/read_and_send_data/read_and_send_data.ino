@@ -17,15 +17,31 @@
 #define RES12 12
 #define RES14 14
 
-#define ENC_0 2  // Ajuste para o pino adequado no MKR 1010
+#define ENC_0 3 
+#define ENC_1 2
 #define SPI_MOSI MOSI
 #define SPI_MISO MISO
 #define SPI_SCLK SCK
 
-#define SUB_TOPIC "data/confirm"
-#define PUB_TOPIC "django/gait_values"
+#define SUB_TOPIC "django/confirm"
+#define PUB_TOPIC "django/gait_values_right"
+#define PUB_TOPIC_1 "django/gait_values_left"
 
+#define BUZZER_PIN 4
+#define LED_PIN 5
 
+#define left ENC_0
+#define right ENC_1
+
+// Define note frequencies (in Hz)
+#define NOTE_C4  262
+#define NOTE_D4  294
+#define NOTE_E4  330
+#define NOTE_F4  349
+#define NOTE_G4  392
+#define NOTE_A4  440
+#define NOTE_B4  494
+#define NOTE_C5  523
 
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
@@ -41,7 +57,8 @@ struct data{
 };
 
 bool permission = false;
-
+bool session_end_flag = false;
+int all_received = 0;
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -64,12 +81,15 @@ void Connect_to_Broker(char broker[], int port){
   Serial.println();
 }
 
-void publisher(char topic[], String data){
+void publisher(char topic[], String data, int qos){
   //send data to broker
-  // Serial.print("Sending data ");
-  // Serial.print(data);
-  // Serial.print("\n");
-  mqttClient.beginMessage(topic);
+  if(session_end_flag == true){
+    Serial.print("Sending data ");
+    Serial.print(data);
+    Serial.print("\n");
+  }
+  
+  mqttClient.beginMessage(topic,false,qos);
   mqttClient.print(data);
   mqttClient.endMessage();
 }
@@ -83,9 +103,28 @@ void onMqttMessage(int messageSize) {
   Serial.println(" bytes:");
 
   // use the Stream interface to print the contents
-  while (mqttClient.available()) {
-    Serial.print((char)mqttClient.read());
+  char message[messageSize + 1];
+  int index = 0;
+
+  // use the Stream interface to read the contents
+  while (mqttClient.available() && index < messageSize) {
+    message[index++] = (char)mqttClient.read();
+  }
+  message[index] = '\0'; // Null-terminate the message string
+
+  Serial.print("Message: ");
+  Serial.println(message);
+
+  if (strcmp(message, "Begin") == 0) {
     permission = true;
+    
+  } else if (strcmp(message, "End") == 0) {
+    permission = false;
+    session_end_flag = true;
+  }
+  else if (strcmp(message, "Received") == 0){
+    all_received = 1;
+    Serial.println(all_received);
   }
   Serial.println();
   Serial.println();
@@ -161,16 +200,16 @@ void setZeroSPI(uint8_t encoder)
 }
 
 
-float read_encoder(){
+float read_encoder(uint8_t encoder){
   // code to read data from encoder  
 
   uint8_t attempts = 0;
   float encoderPositionDegree;
-  uint16_t encoderPosition = getPositionSPI(ENC_0,RES14);
+  uint16_t encoderPosition = getPositionSPI(encoder,RES14);
 
 
   while (encoderPosition == 0xFFFF && ++attempts < 3) {
-    encoderPosition = getPositionSPI(ENC_0, RES14);
+    encoderPosition = getPositionSPI(encoder, RES14);
   }
 
   if (encoderPosition == 0xFFFF) {
@@ -182,7 +221,13 @@ float read_encoder(){
     // Serial.print(encoderPosition, DEC);
     // Serial.print("   -   ");
     encoderPositionDegree = encoderPosition / 45.5083; //transforma em graus
-    encoderPositionDegree=360-encoderPositionDegree;   //muda o sentido de rotação do encoder
+    if(encoder == right){
+      encoderPositionDegree=360-encoderPositionDegree;   //muda o sentido de rotação do encoder
+    }
+    else{
+      encoderPositionDegree=encoderPositionDegree;   //muda o sentido de rotação do encoder
+    }
+    
     encoderPositionDegree=round(encoderPositionDegree * 100) / 100;  //arredonda para um float de 2 casas decimais
     if(encoderPositionDegree>180){
       encoderPositionDegree = encoderPositionDegree-360;
@@ -197,10 +242,13 @@ float read_encoder(){
 ;}
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 void setup() {
   char ssid[] = "Tunes";
   char pass[] = "tunesblack";
-  char broker[] = "broker.emqx.io";
+  char broker[] = "test.mosquitto.org";
   int port = 1883;  
   
   // put your setup code here, to run once:
@@ -208,20 +256,29 @@ void setup() {
   pinMode(SPI_MOSI, OUTPUT);
   pinMode(SPI_MISO, INPUT);
   pinMode(ENC_0, OUTPUT);
+  pinMode(ENC_1, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
 
   Serial.begin(BAUDRATE);
   digitalWrite(ENC_0, HIGH);
+  digitalWrite(ENC_1, HIGH);
   SPI.begin();
 
   setZeroSPI(ENC_0);
+  setZeroSPI(ENC_1);
 
   
 
   while(Connect_to_WiFI(ssid, pass) == false){
     Serial.print("Attempting to connect to WiFi");
+    digitalWrite(LED_PIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_PIN, LOW);
+    delay(100);
   }
   Serial.print("Connected to WiFi");
-
+  digitalWrite(LED_PIN, LOW);
   Connect_to_Broker(broker, port);
   
   // Subscription method
@@ -248,20 +305,38 @@ void setup() {
   
 }
 
+
 void loop() {
   // put your main code here, to run repeatedly:
   String data;
   
   // create loop to save all reading for a predefined session time
   if(permission == true){
-    Serial.print("Begining session");
+    // begin_reading();
+    Serial.print("Begining session\n");
     delay(1000);
     save_data();
-    permission = false;
-    publisher(PUB_TOPIC,"End");
+    
   }
   else{
-    ;
+
+    if(session_end_flag == true){
+      begin_reading();
+      String count_buffer;
+      count_buffer = String("End");
+      publisher(PUB_TOPIC, count_buffer, 1);
+      publisher(PUB_TOPIC_1, count_buffer, 1);
+      session_end_flag = false;
+      delay(5000);
+    }
+    else{
+      Serial.print("No session or data to be sent\n");
+      if(all_received == 1){
+        alld_data_received();
+      }
+      delay(1000);
+    }
+    mqttClient.poll();
   }
   
   mqttClient.poll();
@@ -270,27 +345,81 @@ void loop() {
 }
 
 void save_data(){
-  float reading;
-  String buffer;
-  String message;
-  for(int i = 0; i < 50; i++){
-      reading = read_encoder();
-      
-      buffer = String(reading, 2);
+  float reading_r, reading_l;
+  String buffer_r, buffer_l;
+  const int batchSize = 20; // Define your desired batch size
+  int readingsCount = 0;
 
-      publisher(PUB_TOPIC, buffer);
-      // if(i < 149){
-      //   message = message + buffer + ",";
-      // }
-      // else{
-      //   message = message + buffer;
-      // }
-      // Serial.print("\nBuffer = ");
-      // Serial.print(buffer);
-      // Serial.print("\n");
-      // Serial.print("\nEncoder reading = ");
-      // Serial.print(reading);
-      // Serial.print("\n");
-      delay(10);
+  Serial.print("Beginning session\n");
+  begin_reading();
+  while(permission == true){
+    
+    reading_r = read_encoder(ENC_0);
+    reading_l = read_encoder(ENC_1);
+
+    buffer_r += String(reading_r, 2);
+    buffer_l += String(reading_l, 2);
+    readingsCount++;
+
+    // Add a comma between readings, except after the last reading in a batch
+    if(readingsCount < batchSize){
+      buffer_r += ",";
+      buffer_l += ",";
+    }
+
+    // Check if the batch size is reached
+    if(readingsCount == batchSize){
+      // Send the batched readings
+      publisher(PUB_TOPIC, buffer_r, 1);
+      publisher(PUB_TOPIC_1, buffer_l, 1);
+      mqttClient.poll(); // Ensure the poll function is called during the loop
+
+      // Clear the buffers and reset the readings count for the next batch
+      buffer_r = "";
+      buffer_l = "";
+      readingsCount = 0;
+    }
+
+    delay(5); // Adjust the delay as needed to match your desired reading frequency
   }
+
+  // Handle any remaining readings that didn't fill a complete batch
+  if(readingsCount > 0){
+    publisher(PUB_TOPIC, buffer_r, 1);
+    publisher(PUB_TOPIC_1, buffer_l, 1);
+  }
+}
+
+void begin_reading(){
+  digitalWrite(BUZZER_PIN, HIGH); // Turn the buzzer on
+  delay(1000); // Wait for 1 second
+  digitalWrite(BUZZER_PIN, LOW); // Turn the buzzer off
+}
+
+void alld_data_received(){
+  int melody[] = {
+    NOTE_C4, NOTE_D4, NOTE_E4, NOTE_F4, 
+    NOTE_G4, NOTE_A4, NOTE_B4, NOTE_C5
+  };
+
+  int noteDurations[] = {
+    500, 500, 500, 500, 
+    500, 500, 500, 500
+  };
+  Serial.print("\n\n\t\tIM HERE\n\n");
+  for (int thisNote = 0; thisNote < 8; thisNote++) {
+
+    // Calculate the note duration
+    int noteDuration = noteDurations[thisNote];
+    tone(BUZZER_PIN, melody[thisNote], noteDuration);
+
+    // Pause for the note duration plus 30ms
+    int pauseBetweenNotes = noteDuration + 30;
+    delay(pauseBetweenNotes);
+
+    // Stop the tone playing
+    noTone(BUZZER_PIN);
+    
+  }
+  all_received = 0;
 }

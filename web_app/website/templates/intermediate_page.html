@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Ended</title>
+    <script>
+        setTimeout(function() {
+            window.location.href = "{% url 'newsession' patient.id %}";
+        }, 5000); // Redirect after 5 seconds
+    </script>
+</head>
+<body>
+    <h1>Session Ended</h1>
+    <p>The session has ended. You will be redirected back to the new session page shortly.</p>
+</body>
+</html>

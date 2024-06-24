@@ -5,7 +5,6 @@ import web_app.settings as settings
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT Broker!")
-        client.publish("django/confirm", "Begin Session")
         client.subscribe("django/gait_values_r")
         client.subscribe("django/gait_values_l")
     else:
@@ -14,4 +13,5 @@ def on_connect(client, userdata, flags, rc):
 def disconnect(client):
     print("Disconnected from MQTT broker")
     client.disconnect()
+
 

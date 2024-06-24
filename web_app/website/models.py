@@ -36,11 +36,13 @@ class Sessions(models.Model):
 
     Patient = models.ForeignKey(Patient,on_delete=models.CASCADE)
     session_id = models.IntegerField(null=True)
-    session_results_r = models.CharField(max_length=5000,null=True)
-    session_results_l = models.CharField(max_length=5000,null=True)
+    session_results_r = models.TextField(null=True)
+    session_results_l = models.TextField(null=True)
     date = models.DateTimeField(default=timezone.now)
     notes = models.TextField(null=True, blank=True)
     session_time = models.IntegerField(null=True)
+    session_status_l = models.CharField(max_length=20, null=True, default="Ongoing")
+    session_status_r = models.CharField(max_length=20, null=True, default="Ongoing")
 
     def __str__(self):
         return f"{self.session_id} {self.date} {self.Patient}"
