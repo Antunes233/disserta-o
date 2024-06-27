@@ -17,8 +17,8 @@
 #define RES12 12
 #define RES14 14
 
-#define ENC_0 3 
-#define ENC_1 2
+#define ENC_0 2
+#define ENC_1 3
 #define SPI_MOSI MOSI
 #define SPI_MISO MISO
 #define SPI_SCLK SCK
@@ -133,33 +133,59 @@ void onMqttMessage(int messageSize) {
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------
 //Encoder readings 
 
-uint16_t getPositionSPI(uint8_t encoder, uint8_t resolution) {
-  uint16_t currentPosition;
-  bool binaryArray[16];
+/*
+ * This function gets the absolute position from the AMT22 encoder using the SPI bus. The AMT22 position includes 2 checkbits to use
+ * for position verification. Both 12-bit and 14-bit encoders transfer position via two bytes, giving 16-bits regardless of resolution.
+ * For 12-bit encoders the position is left-shifted two bits, leaving the right two bits as zeros. This gives the impression that the encoder
+ * is actually sending 14-bits, when it is actually sending 12-bit values, where every number is multiplied by 4.
+ * This function takes the pin number of the desired device as an input
+ * This funciton expects res12 or res14 to properly format position responses.
+ * Error values are returned as 0xFFFF
+ */
+uint16_t getPositionSPI(uint8_t encoder, uint8_t resolution)
+{
+  uint16_t currentPosition;       //16-bit response from encoder
+  bool binaryArray[16];           //after receiving the position we will populate this array and use it for calculating the checksum
 
-  currentPosition = spiWriteRead(AMT22_NOP, encoder, false) << 8;
+  //get first byte which is the high byte, shift it 8 bits. don't release line for the first byte
+  currentPosition = spiWriteRead(AMT22_NOP, encoder, false) << 8;  
+
+  //this is the time required between bytes as specified in the datasheet.
+  //We will implement that time delay here, however the arduino is not the fastest device so the delay
+  //is likely inherantly there already
   delayMicroseconds(3);
-  currentPosition |= spiWriteRead(AMT22_NOP, encoder, true);
 
-  for (int i = 0; i < 16; i++) {
-    binaryArray[i] = (0x01) & (currentPosition >> (i));
+  //OR the low byte with the currentPosition variable. release line after second byte
+  currentPosition |= spiWriteRead(AMT22_NOP, encoder, true);        
+
+  //run through the 16 bits of position and put each bit into a slot in the array so we can do the checksum calculation
+  for(int i = 0; i < 16; i++) binaryArray[i] = (0x01) & (currentPosition >> (i));
+
+  //using the equation on the datasheet we can calculate the checksums and then make sure they match what the encoder sent
+  if ((binaryArray[15] == !(binaryArray[13] ^ binaryArray[11] ^ binaryArray[9] ^ binaryArray[7] ^ binaryArray[5] ^ binaryArray[3] ^ binaryArray[1]))
+          && (binaryArray[14] == !(binaryArray[12] ^ binaryArray[10] ^ binaryArray[8] ^ binaryArray[6] ^ binaryArray[4] ^ binaryArray[2] ^ binaryArray[0])))
+    {
+      //we got back a good position, so just mask away the checkbits
+      currentPosition &= 0x3FFF;
+    }
+  else
+  {
+    currentPosition = 0xFFFF; //bad position
   }
 
-  if ((binaryArray[15] == !(binaryArray[13] ^ binaryArray[11] ^ binaryArray[9] ^ binaryArray[7] ^ binaryArray[5] ^ binaryArray[3] ^ binaryArray[1])) && (binaryArray[14] == !(binaryArray[12] ^ binaryArray[10] ^ binaryArray[8] ^ binaryArray[6] ^ binaryArray[4] ^ binaryArray[2] ^ binaryArray[0]))) {
-    currentPosition &= 0x3FFF;
-  } 
-  else {
-    Serial.println("Encoder error.");
-    currentPosition = 0xFFFF;
-  }
-
-  if ((resolution == RES12) && (currentPosition != 0xFFFF)) {
-    currentPosition = currentPosition >> 2;
-  }
+  //If the resolution is 12-bits, and wasn't 0xFFFF, then shift position, otherwise do nothing
+  if ((resolution == RES12) && (currentPosition != 0xFFFF)) currentPosition = currentPosition >> 2;
 
   return currentPosition;
 }
 
+/*
+ * This function does the SPI transfer. sendByte is the byte to transmit.
+ * Use releaseLine to let the spiWriteRead function know if it should release
+ * the chip select line after transfer.  
+ * This function takes the pin number of the desired device as an input
+ * The received data is returned.
+ */
 uint8_t spiWriteRead(uint8_t sendByte, uint8_t encoder, uint8_t releaseLine)
 {
   //holder for the received over SPI
@@ -181,11 +207,20 @@ uint8_t spiWriteRead(uint8_t sendByte, uint8_t encoder, uint8_t releaseLine)
   return data;
 }
 
+/*
+ * This function sets the state of the SPI line. It isn't necessary but makes the code more readable than having digitalWrite everywhere
+ * This function takes the pin number of the desired device as an input
+ */
 void setCSLine (uint8_t encoder, uint8_t csLine)
 {
   digitalWrite(encoder, csLine);
 }
 
+/*
+ * The AMT22 bus allows for extended commands. The first byte is 0x00 like a normal position transfer, but the
+ * second byte is the command.  
+ * This function takes the pin number of the desired device as an input
+ */
 void setZeroSPI(uint8_t encoder)
 {
   spiWriteRead(AMT22_NOP, encoder, false);
@@ -193,10 +228,29 @@ void setZeroSPI(uint8_t encoder)
   //this is the time required between bytes as specified in the datasheet.
   //We will implement that time delay here, however the arduino is not the fastest device so the delay
   //is likely inherantly there already
-  delayMicroseconds(3); 
+  delayMicroseconds(3);
   
   spiWriteRead(AMT22_ZERO, encoder, true);
   delay(250); //250 second delay to allow the encoder to reset
+}
+
+/*
+ * The AMT22 bus allows for extended commands. The first byte is 0x00 like a normal position transfer, but the
+ * second byte is the command.  
+ * This function takes the pin number of the desired device as an input
+ */
+void resetAMT22(uint8_t encoder)
+{
+  spiWriteRead(AMT22_NOP, encoder, false);
+
+  //this is the time required between bytes as specified in the datasheet.
+  //We will implement that time delay here, however the arduino is not the fastest device so the delay
+  //is likely inherantly there already
+  delayMicroseconds(3);
+  
+  spiWriteRead(AMT22_RESET, encoder, true);
+  
+  delay(250); //250 second delay to allow the encoder to start back up
 }
 
 
@@ -215,11 +269,9 @@ float read_encoder(uint8_t encoder){
   if (encoderPosition == 0xFFFF) {
     Serial.print("Encoder error. Attempts: ");
     Serial.print(attempts, DEC);
-    //Serial.write(NEWLINE);
+    Serial.write(NEWLINE);
   } else {
-    // Serial.print("Encoder: ");
-    // Serial.print(encoderPosition, DEC);
-    // Serial.print("   -   ");
+    
     encoderPositionDegree = encoderPosition / 45.5083; //transforma em graus
     if(encoder == right){
       encoderPositionDegree=360-encoderPositionDegree;   //muda o sentido de rotação do encoder
@@ -229,14 +281,19 @@ float read_encoder(uint8_t encoder){
     }
     
     encoderPositionDegree=round(encoderPositionDegree * 100) / 100;  //arredonda para um float de 2 casas decimais
-    if(encoderPositionDegree>180){
-      encoderPositionDegree = encoderPositionDegree-360;
-    }
-    else{
-      encoderPositionDegree = encoderPositionDegree;
-    }
+    // if(encoderPositionDegree>180){
+    //   encoderPositionDegree = encoderPositionDegree-360;
+    // }
+    // else{
+    //   encoderPositionDegree = encoderPositionDegree;
+    // }
     // Serial.println(encoderPositionDegree);
     //Serial.write(NEWLINE);
+    Serial.print("Encoder ");
+    Serial.print(encoder);
+    Serial.print(": ");
+    Serial.println(encoderPositionDegree, DEC);
+    // Serial.print("   -   ");
   }
   return encoderPositionDegree;
 ;}
@@ -267,11 +324,11 @@ void setup() {
 
   setZeroSPI(ENC_0);
   setZeroSPI(ENC_1);
-
+  SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE0));
   
 
   while(Connect_to_WiFI(ssid, pass) == false){
-    Serial.print("Attempting to connect to WiFi");
+    Serial.println("Attempting to connect to WiFi");
     digitalWrite(LED_PIN, HIGH);
     delay(1000);
     digitalWrite(LED_PIN, LOW);
@@ -308,7 +365,20 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  String data;
+
+
+  // float reading_r, reading_l;
+
+  // reading_r = read_encoder(ENC_0);
+  
+  // delay(500);
+  // reading_l = read_encoder(ENC_1);
+  
+
+  // delay(1000);
+
+
+  //String data;
   
   // create loop to save all reading for a predefined session time
   if(permission == true){
@@ -356,6 +426,10 @@ void save_data(){
     
     reading_r = read_encoder(ENC_0);
     reading_l = read_encoder(ENC_1);
+    Serial.print(reading_r);
+    Serial.print("\n");
+    Serial.print(reading_l);
+    Serial.print("\n");
 
     buffer_r += String(reading_r, 2);
     buffer_l += String(reading_l, 2);

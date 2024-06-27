@@ -12,42 +12,6 @@
         window.history.go(-1);
     }
 
-    // document.addEventListener("DOMContentLoaded", function() {
-    //     // Get the notification
-    //     var notification = document.getElementById("notification");
-
-    //     // Get the button that shows the notification
-    //     var endSessionBtn = document.getElementById("end_session");
-
-    //     // Get the <span> element that closes the notification
-    //     var span = document.getElementsByClassName("close")[0];
-
-    //     // When the user clicks the button, show the notification
-    //     endSessionBtn.onclick = function(event) {
-    //         event.preventDefault(); // Prevent the form from submitting immediately
-    //         notification.style.display = "block";
-    //         console.log("Notification displayed"); // Debugging line
-    //         // Automatically hide the notification after 5 seconds
-    //         setTimeout(function() {
-    //             notification.style.display = "none";
-    //             // Submit the form after the notification is shown
-    //             endSessionBtn.closest('form').submit();
-    //         }, 5000);
-    //     }
-
-    //     // When the user clicks on <span> (x), close the notification
-    //     span.onclick = function() {
-    //         notification.style.display = "none";
-    //     }
-
-    //     // Show notification if it exists
-    //     if (notification && notification.style.display !== "none") {
-    //         setTimeout(function() {
-    //             notification.style.display = "none";
-    //         }, 5000);
-    //     }
-    // });
-
 </script>
 
 <div class="top-bar">
@@ -81,9 +45,9 @@
         in the top right side of the page. To end the session please press
         the button "End session" located next to the "Begin session" button. Before
         returning to the patient page please press the "Check Progress" button to check if
-        the data was received from the knee brace. If the data is still being processed 
-        a message saying "Waiting for data..." will be displayed whe the button "Check Progress"
-        is pressed, otherwise the message "Session Completed" will be displayed.
+        the data was received from the knee brace. If the data is still being processed
+        a message saying "Waiting for data..." will be displayed when the button "Check Progress"
+        is pressed, otherwise the message "Session Completed" will be displayed and a melody will be played by the device.
     </p>
     <br>
     <h4>Steps to begin the session</h4>
@@ -92,6 +56,11 @@
         <li>Wait for the device connects successfully to the WiFi (green led will stop blinking)</li>
         <li>Ask the patient to dress the knee braces and walk for a short period of time so they get used to it</li>
         <li>When ready, press the "Begin Session" button</li>
+        <li>The session begins after the beep sound</li>
+        <li>To end the session press "End Session" and wait for the beep sound</li>
+        <li>When all data is collected a melody will be played by the device</li>
+        <li>To ascertain that all data has been successfully received, please click on the "Check Progress" button, which will result in the display of the message "Session Completed"</li>
+        <li>To return to the patient page, please press the "Back to Patient Page" button</li>
     </ol>
 
 </div>
