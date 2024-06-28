@@ -167,6 +167,7 @@ def on_message(client, userdata, msg):
             session.session_results_r = final_data_r
             session.session_status_r = "Completed"
             session.save()
+            final_data_r = ""
 
             publish(client, "Received", "django/confirm")
         else:
@@ -182,6 +183,7 @@ def on_message(client, userdata, msg):
             session.session_results_l = final_data_l
             session.session_status_l = "Completed"
             session.save()
+            final_data_l = ""
 
         else:
             if final_data_l == "":

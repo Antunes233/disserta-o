@@ -1,0 +1,50 @@
+\section{Neural Network}
+
+\quad Neural networks are computational models that mimic the functions of the human brain. Its structure is compared to the one of a neuron present in the human brain. It is composed by an input layer, one or more hidden layers and one output layer.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{img/neuralnetwork.png}
+    \caption{Neural network structure \cite{GfG_2024}}
+    \label{fig:enter-label}
+\end{figure}
+
+There are many types of neural networks like Multilayer Perceptron (MLP), Convolutional Neural Networks (CNN) or Recurrent Neural Networks (RNN). 
+
+Neural Networks bring many advantages like \cite{GfG_2024}:
+\begin{itemize}
+    \item \textbf{Adaptability}: Neural Networks are beneficial for tasks where the relationship between inputs and outputs is intricate or undefined, as they can adjust to new circumstances and learn from data.
+    \item \textbf{Pattern recognition}: Neural Network's ability to recognise patterns makes them effective in tasks such as identifying audio and images, processing natural language, and identifying other complex data patterns.
+    \item \textbf{Parallel processing}: Neural networks can perform multiple tasks simultaneously, which accelerates the learning process and improves efficiency.
+    \item \textbf{Non-linearity}: The data does not require a linear correlation between inputs and outputs. Neural networks can learn from data with non-linear relationships due to the non-linear activation functions present in the neurons.
+\end{itemize}
+
+Neural networks also bring disadvantages, such as the \textbf{requirement for large datasets} and \textbf{high computational power}.
+
+\section{Python Django} \label{Django}
+
+\quad Django is a Python-based web development framework that enables the rapid creation of web applications. The framework includes an SQLite database, authentication forms, a management panel, and a file upload feature, among others, to simplify web application development and avoid dependency issues commonly encountered in other frameworks.
+
+Django is based on a Model-View-Template (MVT) architecture, which is a software design pattern for web development. The MVT structure is composed of three parts \cite{GfG_2023}:
+
+\begin{enumerate}
+    \item \textbf{Model}: The Model serves as the interface for your data and is responsible for maintaining it. It represents the logical data structure of the entire application and is typically represented by a relational database such as MySql or Postgres. 
+    \item \textbf{View}: The View is the user interface of a website, represented by HTML/ CSS/Javascript and Jinja files. 
+    \item \textbf{Template}: A template comprises fixed sections of the desired HTML output and special syntax that specifies how dynamic content will be inserted.
+\end{enumerate}
+
+\section{MQTT}
+
+\quad MQTT is a lightweight publish-subscriber messaging protocol designed for efficient and reliable communications for resource-constrained devices and low bandwidth, high latency, or unreliable network. It is used mostly used in IoT applications, sice it provides efficient communication between peripherals and other devices.
+
+This protocol is based on a client-server service. A client connects to a broker via a TCP/IP socket and from there can send or receive messages to or from the broker. The MQTT broker handles all interactions with the client connections and disconnections, subscription and unsubscription request and routing messages. Depending on the broker structure, it can handle multiple connections and large messages throughput.
+
+The publish-subscribe pattern separates the client that sends messages from the client that receives messages, which is what distinguishes it from the client-server pattern. \cite{WhatIsth52:online}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{img/mqtt.png}
+    \caption{publish-subscribe process in MQTT\cite{WhatIsth52:online}}
+    \label{fig:enter-label}
+\end{figure}
+\newpage

@@ -281,18 +281,18 @@ float read_encoder(uint8_t encoder){
     }
     
     encoderPositionDegree=round(encoderPositionDegree * 100) / 100;  //arredonda para um float de 2 casas decimais
-    // if(encoderPositionDegree>180){
-    //   encoderPositionDegree = encoderPositionDegree-360;
-    // }
-    // else{
-    //   encoderPositionDegree = encoderPositionDegree;
-    // }
+    if(encoderPositionDegree>180){
+      encoderPositionDegree = encoderPositionDegree-360;
+    }
+    else{
+      encoderPositionDegree = encoderPositionDegree;
+    }
     // Serial.println(encoderPositionDegree);
     //Serial.write(NEWLINE);
-    Serial.print("Encoder ");
-    Serial.print(encoder);
-    Serial.print(": ");
-    Serial.println(encoderPositionDegree, DEC);
+    // Serial.print("Encoder ");
+    // Serial.print(encoder);
+    // Serial.print(": ");
+    // Serial.println(encoderPositionDegree, DEC);
     // Serial.print("   -   ");
   }
   return encoderPositionDegree;
@@ -366,19 +366,6 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-
-  // float reading_r, reading_l;
-
-  // reading_r = read_encoder(ENC_0);
-  
-  // delay(500);
-  // reading_l = read_encoder(ENC_1);
-  
-
-  // delay(1000);
-
-
-  //String data;
   
   // create loop to save all reading for a predefined session time
   if(permission == true){
@@ -426,10 +413,10 @@ void save_data(){
     
     reading_r = read_encoder(ENC_0);
     reading_l = read_encoder(ENC_1);
-    Serial.print(reading_r);
-    Serial.print("\n");
-    Serial.print(reading_l);
-    Serial.print("\n");
+    // Serial.print(reading_r);
+    // Serial.print("\n");
+    // Serial.print(reading_l);
+    // Serial.print("\n");
 
     buffer_r += String(reading_r, 2);
     buffer_l += String(reading_l, 2);
@@ -454,7 +441,7 @@ void save_data(){
       readingsCount = 0;
     }
 
-    delay(5); // Adjust the delay as needed to match your desired reading frequency
+    delay(10); // Adjust the delay as needed to match your desired reading frequency
   }
 
   // Handle any remaining readings that didn't fill a complete batch
