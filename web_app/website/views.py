@@ -301,8 +301,11 @@ def SessionReview(request, id, session_id):
     data_list_r = [float(i) for i in data_r]
     data_list_l = [float(i) for i in data_l]
 
-    plot = generate_plot(x1=list(np.arange(0,len(data_list_r)/100,((len(data_list_r)/100)/len(data_list_r)))),
-                         x2=list(np.arange(0,len(data_list_l)/100,((len(data_list_l)/100)/len(data_list_l)))),
+    print(len(list(np.arange(0,len(data_list_r))/len(data_list_r))))
+
+
+    plot = generate_plot(x1=list(np.arange(0,len(data_list_r))/100),
+                         x2=list(np.arange(0,len(data_list_l))/100),
                          y_r=data_list_r,y_l= data_list_l)
 
     if patient.gender == 'Male':
