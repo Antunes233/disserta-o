@@ -301,8 +301,6 @@ def SessionReview(request, id, session_id):
     data_list_r = [float(i) for i in data_r]
     data_list_l = [float(i) for i in data_l]
 
-    print(len(list(np.arange(0,len(data_list_r))/len(data_list_r))))
-
 
     plot = generate_plot(x1=list(np.arange(0,len(data_list_r))/100),
                          x2=list(np.arange(0,len(data_list_l))/100),
@@ -315,7 +313,9 @@ def SessionReview(request, id, session_id):
     with torch.no_grad():
         knee_angle_curve = model(torch.tensor([[patient.age, gender, patient.weight, patient.height]]))
     smoothed_curve = savgol_filter(knee_angle_curve[0].cpu().detach().numpy(), 15, 4)
-    plot_expected = generate_expected_curve(list(range(100)), smoothed_curve)
+    plot_expected_1 = generate_expected_curve(x = list(np.arange(0,len(data_list_r))/100), expected_curve = smoothed_curve, y = data_list_r, side = 0)
+    plot_expected_2 = generate_expected_curve(x = list(np.arange(0,len(data_list_r))/100), expected_curve = smoothed_curve, y = data_list_l, side = 1)
+    print(len(list(np.arange(0,len(data_list_r))/100)))
 
     if request.method == "POST":
         if 'go_back' in request.POST:
@@ -325,10 +325,41 @@ def SessionReview(request, id, session_id):
         session.notes = request.POST.get('session_notes', '')
         session.save()
 
+    # Convert smoothed_curve to a list for JSON serialization
+    smoothed_curve_list = smoothed_curve.tolist()
+
     context = {
         "session": session,
         "patient": patient,
         "plot_data": plot,
-        "expected_curve": plot_expected,
+        "expected_curve": plot_expected_1,
+        "expected_curve_1": plot_expected_2,
+        "smoothed_curve": smoothed_curve_list,
     }
     return HttpResponse(template.render(context, request))
+
+def get_data_points(request, start, count, id, session_id):
+    session = Sessions.objects.get(Patient=id, id=session_id)
+    data_r = session.session_results_r.strip('[]').split(',')
+    data_l = session.session_results_l.strip('[]').split(',')
+    data_list_r = [float(i) for i in data_r]
+    data_list_l = [float(i) for i in data_l]
+
+    end = start + count
+    data_points_r = [{'timestamp': i, 'value': data_list_r[i]} for i in range(start, end)]
+    data_points_l = [{'timestamp': i, 'value': data_list_l[i]} for i in range(start, end)]
+
+    return JsonResponse({'right': data_points_r, 'left': data_points_l})
+
+def get_expected_curve(request, id):
+    patient = Patient.objects.get(id=id)
+    if patient.gender == 'Male':
+        gender = 1
+    else:
+        gender = 0
+    with torch.no_grad():
+        knee_angle_curve = model(torch.tensor([[patient.age, gender, patient.weight, patient.height]]))
+
+    smoothed_curve = savgol_filter(knee_angle_curve[0].cpu().detach().numpy(), 15, 4)
+
+    return JsonResponse({'expected_curve': smoothed_curve.tolist()})

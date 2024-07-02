@@ -1,7 +1,7 @@
 {% extends "main.html" %}
 {% load static %}
 
-{% block title %}New Session{% endblock %}
+{% block title %}Session Review{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/sessionreview.css' %}">
@@ -16,12 +16,36 @@
     </div>
 </div>
 
-<div id="container">
-    <img id="main_plot" src="data:image/png;base64,{{ plot_data }}" >
+<div class="canvas-container">
+    <canvas id="dataChart" width="1500" height="400" class="chart-canvas"></canvas>
+    <div class="chart-controls">
+        <button id="prev" class="chart-button">Previous</button>
+        <button id="next" class="chart-button">Next</button>
+    </div>
 </div>
+
+
+<div class="canvas-container">
+    <canvas id="smoothedCurveChart" width="1500" height="400" class="chart-canvas"></canvas>
+</div>
+
+
+<!-- <div class="canvas-container">
+    <canvas id="combinedChart" width="1500" height="400" class="chart-canvas"></canvas>
+    <div class="chart-controls">
+        <button id="prevCombined" class="chart-button">Previous</button>
+        <button id="nextCombined" class="chart-button">Next</button>
+        <button id="toggleCurve" class="chart-button">Show Right Curve</button>
+    </div>
+</div> -->
+
 
 <div id="container_2">
     <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve }}" >
+</div>
+
+<div id="container_2">
+    <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve_1 }}" >
 </div>
 
 
@@ -69,4 +93,312 @@
     container.addEventListener("mouseleave", offZoom);
     container.addEventListener("mouseover", onZoom);
 </script>
+
+<!-- ---------------------------------------- -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+
+
+<script>
+    let start = 0;
+    let totalDataLength;
+    const count = 400;
+    const chartContext = document.getElementById('dataChart').getContext('2d');
+    const dataChart = new Chart(chartContext, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Right Leg',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                    fill: false
+                },
+                {
+                    label: 'Left Leg',
+                    data: [],
+                    borderColor: 'rgba(192, 75, 75, 1)',
+                    borderWidth: 1,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            scales: {
+                x: {
+                    type: 'linear',
+                    ticks: {
+                        callback: function(value) {
+                            return value / 100;
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    function updateChart() {
+        $.get(`/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`, function(data) {
+            const labelsRight = data.right.map(point => point.timestamp);
+            const valuesRight = data.right.map(point => point.value);
+            const labelsLeft = data.left.map(point => point.timestamp);
+            const valuesLeft = data.left.map(point => point.value);
+
+            totalDataLength = valuesLeft.length + valuesRight.length;
+
+            dataChart.data.labels = labelsRight;
+            dataChart.data.datasets[0].data = valuesRight;
+            dataChart.data.datasets[1].data = valuesLeft;
+
+            dataChart.update();
+        });
+
+    }
+
+    $('#prev').click(function() {
+        if (start >= count) {
+            start -= count;
+            updateChart();
+        //     $('#next').prop('disabled', false); // Enable the "Next" button
+        }
+    });
+
+    $('#next').click(function() {
+        // if (start + count < totalDataLength) {
+            start += count;
+            updateChart();
+        // } else {
+        //     // Disable the "Next" button
+        //     $(this).prop('disabled', true);
+        // }
+    });
+
+    $(document).ready(function() {
+        updateChart();
+    });
+</script>
+
+
+
+<script>
+
+    $(document).ready(function() {
+        // Fetch expected curve data
+        $.get(`/get-expected-curve/{{ patient.id }}/`, function(curveData) {
+            const expectedCurveContext = document.getElementById('smoothedCurveChart').getContext('2d');
+            const expectedCurveChart = new Chart(expectedCurveContext, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: curveData.expected_curve.length}, (_, i) => i),
+                    datasets: [{
+                        label: 'Expected Curve',
+                        data: curveData.expected_curve,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Gait Cycle (%)'
+                            },
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return (value).toFixed(2);
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Knee Angle (degrees)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Expected Knee Flexion Curve'
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return `Gait Cycle: ${(context[0].parsed.x).toFixed(2)} %`;
+                                },
+                                label: function(context) {
+                                    return `Angle: ${context.parsed.y.toFixed(2)}°`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    });
+</script>
+
+<!-- <script>
+    $(document).ready(function() {
+        // Step 1: Initialize variables
+        let start = 0;
+        const count = 100;
+        const combinedChartContext = document.getElementById('combinedChart').getContext('2d');
+        let combinedChart;
+        let showRightCurve = true; // Initial state
+
+        // Helper function to pad an array to a target length
+        function padArray(arr, targetLength, padValue = null) {
+            const paddedArr = [...arr];
+            while (paddedArr.length < targetLength) {
+                paddedArr.push(padValue);
+            }
+            return paddedArr;
+        }
+
+        // Step 2: Define the updateCombinedChart function
+        function updateCombinedChart() {
+            // Step 3: Make AJAX requests to get data
+            $.when(
+                $.get(`/get-expected-curve/{{ patient.id }}/`),
+                $.get(`/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`)
+            ).done(function(expectedCurveResponse, dataPointsResponse) {
+                // Step 4: Process the received data
+                const expectedCurveData = expectedCurveResponse[0].expected_curve;
+                const dataPoints = dataPointsResponse[0];
+
+                const maxLength = Math.max(
+                    dataPoints.right.length,
+                    dataPoints.left.length,
+                    expectedCurveData.length
+                );
+                const labels = Array.from({ length: maxLength }, (_, i) => i);
+
+                const rightLegData = padArray(dataPoints.right.map(point => point.value), maxLength);
+                const leftLegData = padArray(dataPoints.left.map(point => point.value), maxLength);
+
+                // Step 5: Destroy existing chart if it exists
+                if (combinedChart) {
+                    combinedChart.destroy();
+                }
+
+                // Step 6: Create new chart
+                combinedChart = new Chart(combinedChartContext, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Expected Curve',
+                                data: expectedCurveData,
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 2,
+                                fill: false,
+                                pointRadius: 0
+                            },
+                            {
+                                label: 'Right Leg',
+                                data: rightLegData,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1,
+                                fill: false,
+                                hidden: !showRightCurve // Hide or show based on the state
+                            },
+                            {
+                                label: 'Left Leg',
+                                data: leftLegData,
+                                borderColor: 'rgba(192, 75, 75, 1)',
+                                borderWidth: 1,
+                                fill: false,
+                                hidden: showRightCurve // Hide or show based on the state
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                title: {
+                                    display: true,
+                                    text: 'Gait Cycle (%)'
+                                }
+                            },
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Knee Angle (degrees)'
+                                },
+                                ticks: {
+                                    callback: function(value, index, values) {
+                                        return value.toFixed(2) + '°';
+                                    }
+                                },
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Combined Knee Flexion Curves'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return `Gait Cycle: ${context[0].parsed.x.toFixed(2)} %`;
+                                    },
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}°`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        // Step 7: Initial chart update
+        updateCombinedChart();
+
+        // Step 8: Add event listeners for navigation buttons
+        $('#prevCombined').click(function() {
+            if (start >= count) {
+                start -= count;
+                updateCombinedChart();
+            }
+        });
+
+        $('#nextCombined').click(function() {
+            start += count;
+            updateCombinedChart();
+        });
+
+        // Toggle curve visibility
+        $('#toggleCurve').click(function() {
+            showRightCurve = !showRightCurve;
+            $(this).text(showRightCurve ? 'Show Left Curve' : 'Show Right Curve');
+            updateCombinedChart();
+        });
+    });
+</script> -->
+
 {% endblock %}

@@ -153,3 +153,39 @@ body {
 .zoom-control input[type="checkbox"] {
     transform: scale(1.5);
 }
+
+
+.canvas-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.chart-canvas {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-controls {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.chart-button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    margin: 0 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.chart-button:hover {
+    background-color: #0056b3;
+}

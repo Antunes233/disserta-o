@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+import numpy as np
 
 def generate_plot(x1,x2, y_r,y_l):
     """
@@ -27,10 +28,20 @@ def generate_plot(x1,x2, y_r,y_l):
     return graph
 
 
-def generate_expected_curve(x,expected_curve):
+def generate_expected_curve(x,expected_curve,y,side):
+    final_expected = np.array([])
+    for i in range(int(len(x)/100)):
+        final_expected = np.concatenate((final_expected,expected_curve))
+
+    if side == 0:
+        label = 'right knee'
+    else:
+        label = 'left knee'
+
     plt.switch_backend('AGG')
     plt.figure(figsize=(15, 3))
-    plt.plot(x, expected_curve, color='red',label='right knee')
+    plt.plot(x, final_expected, color='red',label='expected knee angle')
+    plt.plot(x, y, color='blue', label=label)
     plt.xlabel('Gait Cycle (%)')
     plt.ylabel('Knee Angle (degrees)')
     plt.legend()
