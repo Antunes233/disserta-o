@@ -17,7 +17,7 @@
 </div>
 
 <div class="canvas-container">
-    <canvas id="dataChart" width="1500" height="400" class="chart-canvas"></canvas>
+    <canvas id="dataChart" width="1300" height="400" class="chart-canvas"></canvas>
     <div class="chart-controls">
         <button id="prev" class="chart-button">Previous</button>
         <button id="next" class="chart-button">Next</button>
@@ -26,27 +26,27 @@
 
 
 <div class="canvas-container">
-    <canvas id="smoothedCurveChart" width="1500" height="400" class="chart-canvas"></canvas>
+    <canvas id="smoothedCurveChart" width="800" height="400" class="chart-canvas"></canvas>
 </div>
 
 
-<!-- <div class="canvas-container">
-    <canvas id="combinedChart" width="1500" height="400" class="chart-canvas"></canvas>
+<div class="canvas-container">
+    <canvas id="combinedChart" width="800" height="400" class="chart-canvas"></canvas>
     <div class="chart-controls">
         <button id="prevCombined" class="chart-button">Previous</button>
         <button id="nextCombined" class="chart-button">Next</button>
         <button id="toggleCurve" class="chart-button">Show Right Curve</button>
     </div>
-</div> -->
+</div>
 
 
-<div id="container_2">
+<!-- <div id="container_2">
     <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve }}" >
 </div>
 
 <div id="container_2">
     <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve_1 }}" >
-</div>
+</div> -->
 
 
 <!-- Add a form for session notes -->
@@ -255,15 +255,16 @@
     });
 </script>
 
-<!-- <script>
+<script>
     $(document).ready(function() {
-        // Step 1: Initialize variables
+        // Initialize variables
         let start = 0;
-        const count = 100;
+        const count = 110;
         const combinedChartContext = document.getElementById('combinedChart').getContext('2d');
         let combinedChart;
         let showRightCurve = true; // Initial state
-
+        let removedExpectedCurveValues = []; // Variable to store removed expected curve values
+    
         // Helper function to pad an array to a target length
         function padArray(arr, targetLength, padValue = null) {
             const paddedArr = [...arr];
@@ -272,34 +273,64 @@
             }
             return paddedArr;
         }
-
-        // Step 2: Define the updateCombinedChart function
+    
+        // Helper function to shift expected curve data
+        function shiftExpectedCurve(expectedCurveData, shiftAmount) {
+            const shiftedExpectedCurve = new Array(expectedCurveData.length).fill(null);
+    
+            for (let i = 0; i < expectedCurveData.length; i++) {
+                const newIndex = i + shiftAmount;
+                if (newIndex >= 0 && newIndex < expectedCurveData.length) {
+                    shiftedExpectedCurve[newIndex] = expectedCurveData[i];
+                } else {
+                    // Store the value that would be removed after shifting
+                    removedExpectedCurveValues.push(expectedCurveData[i]);
+                }
+            }
+    
+            // Remove null values resulting from the shift
+            return shiftedExpectedCurve.filter(value => value !== null);
+        }
+    
+        // Define the updateCombinedChart function
         function updateCombinedChart() {
-            // Step 3: Make AJAX requests to get data
+            // Make AJAX requests to get data
             $.when(
                 $.get(`/get-expected-curve/{{ patient.id }}/`),
                 $.get(`/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`)
             ).done(function(expectedCurveResponse, dataPointsResponse) {
-                // Step 4: Process the received data
-                const expectedCurveData = expectedCurveResponse[0].expected_curve;
+                // Process the received data
+                let expectedCurveData = expectedCurveResponse[0].expected_curve;
                 const dataPoints = dataPointsResponse[0];
-
+    
                 const maxLength = Math.max(
                     dataPoints.right.length,
                     dataPoints.left.length,
                     expectedCurveData.length
                 );
                 const labels = Array.from({ length: maxLength }, (_, i) => i);
-
+    
                 const rightLegData = padArray(dataPoints.right.map(point => point.value), maxLength);
                 const leftLegData = padArray(dataPoints.left.map(point => point.value), maxLength);
-
-                // Step 5: Destroy existing chart if it exists
+    
+                // Determine which knee curve is being observed
+                const observedLegData = showRightCurve ? rightLegData : leftLegData;
+                const maxObservedIndex = observedLegData.indexOf(Math.max(...observedLegData));
+                const maxExpectedIndex = expectedCurveData.indexOf(Math.max(...expectedCurveData));
+    
+                // Calculate shift amount and shift expected curve data
+                const shiftAmount = maxObservedIndex - maxExpectedIndex;
+                const shiftedExpectedCurve = shiftExpectedCurve(expectedCurveData, shiftAmount);
+    
+                // Concatenate the new shifted expected curve data
+                const newExpected = shiftedExpectedCurve.concat(removedExpectedCurveValues);
+                
+                // Destroy existing chart if it exists
                 if (combinedChart) {
                     combinedChart.destroy();
                 }
-
-                // Step 6: Create new chart
+    
+                // Create new chart
                 combinedChart = new Chart(combinedChartContext, {
                     type: 'line',
                     data: {
@@ -307,7 +338,7 @@
                         datasets: [
                             {
                                 label: 'Expected Curve',
-                                data: expectedCurveData,
+                                data: newExpected,
                                 borderColor: 'rgba(255, 99, 132, 1)',
                                 borderWidth: 2,
                                 fill: false,
@@ -373,25 +404,28 @@
                         }
                     }
                 });
+    
+                // Optional: Log or display the removed values for debugging or analysis
+                console.log('Removed Expected Curve Values:', removedExpectedCurveValues);
             });
         }
-
-        // Step 7: Initial chart update
+    
+        // Initial chart update
         updateCombinedChart();
-
-        // Step 8: Add event listeners for navigation buttons
+    
+        // Add event listeners for navigation buttons
         $('#prevCombined').click(function() {
             if (start >= count) {
                 start -= count;
                 updateCombinedChart();
             }
         });
-
+    
         $('#nextCombined').click(function() {
             start += count;
             updateCombinedChart();
         });
-
+    
         // Toggle curve visibility
         $('#toggleCurve').click(function() {
             showRightCurve = !showRightCurve;
@@ -399,6 +433,7 @@
             updateCombinedChart();
         });
     });
-</script> -->
+    </script>
+    
 
 {% endblock %}
