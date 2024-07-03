@@ -363,3 +363,32 @@ def get_expected_curve(request, id):
     smoothed_curve = savgol_filter(knee_angle_curve[0].cpu().detach().numpy(), 15, 4)
 
     return JsonResponse({'expected_curve': smoothed_curve.tolist()})
+
+
+def get_data_between_indexes_right(request, id, session_id, start_index, end_index):
+    session = Sessions.objects.get(Patient=id, id=session_id)
+    data_r = session.session_results_r.strip('[]').split(',')
+    data_list_r = [float(i) for i in data_r]
+
+    right_leg_data = data_list_r[start_index:end_index]
+
+    return JsonResponse({'right': right_leg_data})
+
+def get_data_between_indexes_left(request, id, session_id, start_index, end_index):
+    session = Sessions.objects.get(Patient=id, id=session_id)
+    data_l = session.session_results_l.strip('[]').split(',')
+    data_list_l = [float(i) for i in data_l]
+
+    left_leg_data = data_list_l[start_index:end_index]
+
+    return JsonResponse({'left': left_leg_data})
+
+
+def get_all_data_points(request, id, session_id):
+    session = Sessions.objects.get(Patient=id, id=session_id)
+    data_r = session.session_results_r.strip('[]').split(',')
+    data_l = session.session_results_l.strip('[]').split(',')
+    data_list_r = [float(i) for i in data_r]
+    data_list_l = [float(i) for i in data_l]
+
+    return JsonResponse({'right': data_list_r, 'left': data_list_l})
