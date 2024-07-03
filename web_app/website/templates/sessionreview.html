@@ -264,7 +264,7 @@
         let combinedChart;
         let showRightCurve = true; // Initial state
         let removedExpectedCurveValues = []; // Variable to store removed expected curve values
-    
+
         // Helper function to pad an array to a target length
         function padArray(arr, targetLength, padValue = null) {
             const paddedArr = [...arr];
@@ -273,11 +273,11 @@
             }
             return paddedArr;
         }
-    
+
         // Helper function to shift expected curve data
         function shiftExpectedCurve(expectedCurveData, shiftAmount) {
             const shiftedExpectedCurve = new Array(expectedCurveData.length).fill(null);
-    
+
             for (let i = 0; i < expectedCurveData.length; i++) {
                 const newIndex = i + shiftAmount;
                 if (newIndex >= 0 && newIndex < expectedCurveData.length) {
@@ -287,11 +287,11 @@
                     removedExpectedCurveValues.push(expectedCurveData[i]);
                 }
             }
-    
+
             // Remove null values resulting from the shift
             return shiftedExpectedCurve.filter(value => value !== null);
         }
-    
+
         // Define the updateCombinedChart function
         function updateCombinedChart() {
             // Make AJAX requests to get data
@@ -302,34 +302,34 @@
                 // Process the received data
                 let expectedCurveData = expectedCurveResponse[0].expected_curve;
                 const dataPoints = dataPointsResponse[0];
-    
+
                 const maxLength = Math.max(
                     dataPoints.right.length,
                     dataPoints.left.length,
                     expectedCurveData.length
                 );
                 const labels = Array.from({ length: maxLength }, (_, i) => i);
-    
+
                 const rightLegData = padArray(dataPoints.right.map(point => point.value), maxLength);
                 const leftLegData = padArray(dataPoints.left.map(point => point.value), maxLength);
-    
+
                 // Determine which knee curve is being observed
                 const observedLegData = showRightCurve ? rightLegData : leftLegData;
                 const maxObservedIndex = observedLegData.indexOf(Math.max(...observedLegData));
                 const maxExpectedIndex = expectedCurveData.indexOf(Math.max(...expectedCurveData));
-    
+
                 // Calculate shift amount and shift expected curve data
                 const shiftAmount = maxObservedIndex - maxExpectedIndex;
                 const shiftedExpectedCurve = shiftExpectedCurve(expectedCurveData, shiftAmount);
-    
+
                 // Concatenate the new shifted expected curve data
                 const newExpected = shiftedExpectedCurve.concat(removedExpectedCurveValues);
-                
+
                 // Destroy existing chart if it exists
                 if (combinedChart) {
                     combinedChart.destroy();
                 }
-    
+
                 // Create new chart
                 combinedChart = new Chart(combinedChartContext, {
                     type: 'line',
@@ -404,15 +404,15 @@
                         }
                     }
                 });
-    
+
                 // Optional: Log or display the removed values for debugging or analysis
                 console.log('Removed Expected Curve Values:', removedExpectedCurveValues);
             });
         }
-    
+
         // Initial chart update
         updateCombinedChart();
-    
+
         // Add event listeners for navigation buttons
         $('#prevCombined').click(function() {
             if (start >= count) {
@@ -420,12 +420,11 @@
                 updateCombinedChart();
             }
         });
-    
+
         $('#nextCombined').click(function() {
             start += count;
             updateCombinedChart();
         });
-    
         // Toggle curve visibility
         $('#toggleCurve').click(function() {
             showRightCurve = !showRightCurve;
@@ -433,7 +432,7 @@
             updateCombinedChart();
         });
     });
-    </script>
-    
+</script>
+
 
 {% endblock %}
