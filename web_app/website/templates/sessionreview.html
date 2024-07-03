@@ -1,44 +1,57 @@
-{% extends "main.html" %}
-{% load static %}
-
-{% block title %}Session Review{% endblock %}
-
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/sessionreview.css' %}">
+{% extends "main.html" %} {% load static %} {% block title %}Session Review{%
+endblock %} {% block content %}
+<link rel="stylesheet" href="{% static 'css/sessionreview.css' %}" />
 
 <div class="top-bar">
-    <h1>{{patient.name}} session {{session.session_id}}</h1>
-    <div class="buttons">
-        <form method="post" style="display: inline;">
-            {% csrf_token %}
-            <input type="submit" name="go_back" value="Back to patient page" class="common-style">
-        </form>
-    </div>
+  <h1>{{patient.name}} session {{session.session_id}}</h1>
+  <div class="buttons">
+    <form method="post" style="display: inline">
+      {% csrf_token %}
+      <input
+        type="submit"
+        name="go_back"
+        value="Back to patient page"
+        class="common-style"
+      />
+    </form>
+  </div>
 </div>
 
 <div class="canvas-container">
-    <canvas id="dataChart" width="1300" height="400" class="chart-canvas"></canvas>
-    <div class="chart-controls">
-        <button id="prev" class="chart-button">Previous</button>
-        <button id="next" class="chart-button">Next</button>
-    </div>
+  <canvas
+    id="dataChart"
+    width="1300"
+    height="400"
+    class="chart-canvas"
+  ></canvas>
+  <div class="chart-controls">
+    <button id="prev" class="chart-button">Previous</button>
+    <button id="next" class="chart-button">Next</button>
+  </div>
 </div>
-
 
 <div class="canvas-container">
-    <canvas id="smoothedCurveChart" width="800" height="400" class="chart-canvas"></canvas>
+  <canvas
+    id="smoothedCurveChart"
+    width="800"
+    height="400"
+    class="chart-canvas"
+  ></canvas>
 </div>
-
 
 <div class="canvas-container">
-    <canvas id="combinedChart" width="800" height="400" class="chart-canvas"></canvas>
-    <div class="chart-controls">
-        <button id="prevCombined" class="chart-button">Previous</button>
-        <button id="nextCombined" class="chart-button">Next</button>
-        <button id="toggleCurve" class="chart-button">Show Right Curve</button>
-    </div>
+  <canvas
+    id="combinedChart"
+    width="800"
+    height="400"
+    class="chart-canvas"
+  ></canvas>
+  <div class="chart-controls">
+    <button id="prevCombined" class="chart-button">Previous</button>
+    <button id="nextCombined" class="chart-button">Next</button>
+    <button id="toggleCurve" class="chart-button">Show Right Curve</button>
+  </div>
 </div>
-
 
 <!-- <div id="container_2">
     <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve }}" >
@@ -48,392 +61,425 @@
     <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve_1 }}" >
 </div> -->
 
-
 <!-- Add a form for session notes -->
 <div class="notes-section">
-    <h2>Session Notes</h2>
-    <form method="post">
-        {% csrf_token %}
-        <textarea name="session_notes" rows="5" cols="50" placeholder="Write your notes here...">{{ session.notes }}</textarea>
-        <br>
-        <input type="submit" value="Save Notes">
-    </form>
+  <h2>Session Notes</h2>
+  <form method="post">
+    {% csrf_token %}
+    <textarea
+      name="session_notes"
+      rows="5"
+      cols="50"
+      placeholder="Write your notes here..."
+    >
+{{ session.notes }}</textarea
+    >
+    <br />
+    <input type="submit" value="Save Notes" />
+  </form>
 </div>
 
 <!-- Add a checkbox to enable/disable zoom -->
 <div class="zoom-control">
-    <label for="zoom-checkbox">Enable Zoom</label>
-    <input type="checkbox" id="zoom-checkbox">
+  <label for="zoom-checkbox">Enable Zoom</label>
+  <input type="checkbox" id="zoom-checkbox" />
 </div>
 
 <script>
-    const myimg = document.getElementById("main_plot");
-    const container = document.getElementById("container");
-    const zoomCheckbox = document.getElementById("zoom-checkbox");
+  const myimg = document.getElementById("main_plot");
+  const container = document.getElementById("container");
+  const zoomCheckbox = document.getElementById("zoom-checkbox");
 
-    function onZoom(e) {
-        if (zoomCheckbox.checked) {
-            const rect = container.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+  function onZoom(e) {
+    if (zoomCheckbox.checked) {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-            myimg.style.transformOrigin = `${x}px ${y}px`;
-            myimg.style.transform = `scale(1.5)`;
-        }
+      myimg.style.transformOrigin = `${x}px ${y}px`;
+      myimg.style.transform = `scale(1.5)`;
     }
+  }
 
-    function offZoom(e) {
-        if (zoomCheckbox.checked) {
-            myimg.style.transformOrigin = `center center`;
-            myimg.style.transform = `scale(1)`;
-        }
+  function offZoom(e) {
+    if (zoomCheckbox.checked) {
+      myimg.style.transformOrigin = `center center`;
+      myimg.style.transform = `scale(1)`;
     }
+  }
 
-    container.addEventListener("mousemove", onZoom);
-    container.addEventListener("mouseleave", offZoom);
-    container.addEventListener("mouseover", onZoom);
+  container.addEventListener("mousemove", onZoom);
+  container.addEventListener("mouseleave", offZoom);
+  container.addEventListener("mouseover", onZoom);
 </script>
 
 <!-- ---------------------------------------- -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script>
+  let start = 0;
+  let totalDataLength;
+  const count = 400;
+  const chartContext = document.getElementById("dataChart").getContext("2d");
+  const dataChart = new Chart(chartContext, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Right Leg",
+          data: [],
+          borderColor: "rgba(75, 192, 192, 1)",
+          borderWidth: 1,
+          fill: false,
+        },
+        {
+          label: "Left Leg",
+          data: [],
+          borderColor: "rgba(192, 75, 75, 1)",
+          borderWidth: 1,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      scales: {
+        x: {
+          type: "linear",
+          ticks: {
+            callback: function (value) {
+              return value / 100;
+            },
+          },
+        },
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
 
+  function updateChart() {
+    $.get(
+      `/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`,
+      function (data) {
+        const labelsRight = data.right.map((point) => point.timestamp);
+        const valuesRight = data.right.map((point) => point.value);
+        const labelsLeft = data.left.map((point) => point.timestamp);
+        const valuesLeft = data.left.map((point) => point.value);
 
+        totalDataLength = valuesLeft.length + valuesRight.length;
+
+        dataChart.data.labels = labelsRight;
+        dataChart.data.datasets[0].data = valuesRight;
+        dataChart.data.datasets[1].data = valuesLeft;
+
+        dataChart.update();
+      }
+    );
+  }
+
+  $("#prev").click(function () {
+    if (start >= count) {
+      start -= count;
+      updateChart();
+      //     $('#next').prop('disabled', false); // Enable the "Next" button
+    }
+  });
+
+  $("#next").click(function () {
+    // if (start + count < totalDataLength) {
+    start += count;
+    updateChart();
+    // } else {
+    //     // Disable the "Next" button
+    //     $(this).prop('disabled', true);
+    // }
+  });
+
+  $(document).ready(function () {
+    updateChart();
+  });
+</script>
 
 <script>
-    let start = 0;
-    let totalDataLength;
-    const count = 400;
-    const chartContext = document.getElementById('dataChart').getContext('2d');
-    const dataChart = new Chart(chartContext, {
-        type: 'line',
+  $(document).ready(function () {
+    // Fetch expected curve data
+    $.get(`/get-expected-curve/{{ patient.id }}/`, function (curveData) {
+      const expectedCurveContext = document
+        .getElementById("smoothedCurveChart")
+        .getContext("2d");
+      const expectedCurveChart = new Chart(expectedCurveContext, {
+        type: "line",
         data: {
-            labels: [],
-            datasets: [
-                {
-                    label: 'Right Leg',
-                    data: [],
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1,
-                    fill: false
-                },
-                {
-                    label: 'Left Leg',
-                    data: [],
-                    borderColor: 'rgba(192, 75, 75, 1)',
-                    borderWidth: 1,
-                    fill: false
-                }
-            ]
+          labels: Array.from(
+            { length: curveData.expected_curve.length },
+            (_, i) => i
+          ),
+          datasets: [
+            {
+              label: "Expected Curve",
+              data: curveData.expected_curve,
+              borderColor: "rgba(255, 99, 132, 1)",
+              borderWidth: 2,
+              fill: false,
+              pointRadius: 0,
+            },
+          ],
         },
         options: {
-            scales: {
-                x: {
-                    type: 'linear',
-                    ticks: {
-                        callback: function(value) {
-                            return value / 100;
-                        }
-                    }
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: "linear",
+              title: {
+                display: true,
+                text: "Gait Cycle (%)",
+              },
+              ticks: {
+                callback: function (value, index, values) {
+                  return value.toFixed(2);
                 },
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
+              },
+            },
+            y: {
+              beginAtZero: false,
+              title: {
+                display: true,
+                text: "Knee Angle (degrees)",
+              },
+            },
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: "Expected Knee Flexion Curve",
+            },
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              callbacks: {
+                title: function (context) {
+                  return `Gait Cycle: ${context[0].parsed.x.toFixed(2)} %`;
+                },
+                label: function (context) {
+                  return `Angle: ${context.parsed.y.toFixed(2)}°`;
+                },
+              },
+            },
+          },
+        },
+      });
     });
+  });
+</script>
 
-    function updateChart() {
-        $.get(`/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`, function(data) {
-            const labelsRight = data.right.map(point => point.timestamp);
-            const valuesRight = data.right.map(point => point.value);
-            const labelsLeft = data.left.map(point => point.timestamp);
-            const valuesLeft = data.left.map(point => point.value);
+<script>
+  $(document).ready(function () {
+    // Initialize variables
+    let start = 0;
+    const count = 110;
+    const combinedChartContext = document
+      .getElementById("combinedChart")
+      .getContext("2d");
+    let combinedChart;
+    let showRightCurve = true; // Initial state
+    let removedExpectedCurveValues = []; // Variable to store removed expected curve values
 
-            totalDataLength = valuesLeft.length + valuesRight.length;
-
-            dataChart.data.labels = labelsRight;
-            dataChart.data.datasets[0].data = valuesRight;
-            dataChart.data.datasets[1].data = valuesLeft;
-
-            dataChart.update();
-        });
-
+    // Helper function to pad an array to a target length
+    function padArray(arr, targetLength, padValue = null) {
+      const paddedArr = [...arr];
+      while (paddedArr.length < targetLength) {
+        paddedArr.push(padValue);
+      }
+      return paddedArr;
     }
 
-    $('#prev').click(function() {
-        if (start >= count) {
-            start -= count;
-            updateChart();
-        //     $('#next').prop('disabled', false); // Enable the "Next" button
+    // Helper function to shift expected curve data
+    function shiftExpectedCurve(expectedCurveData, shiftAmount) {
+      const shiftedExpectedCurve = new Array(expectedCurveData.length).fill(
+        null
+      );
+
+      for (let i = 0; i < expectedCurveData.length; i++) {
+        const newIndex = i + shiftAmount;
+        if (newIndex >= 0 && newIndex < expectedCurveData.length) {
+          shiftedExpectedCurve[newIndex] = expectedCurveData[i];
+        } else {
+          // Store the value that would be removed after shifting
+          removedExpectedCurveValues.push(expectedCurveData[i]);
         }
-    });
+      }
 
-    $('#next').click(function() {
-        // if (start + count < totalDataLength) {
-            start += count;
-            updateChart();
-        // } else {
-        //     // Disable the "Next" button
-        //     $(this).prop('disabled', true);
-        // }
-    });
+      // Remove null values resulting from the shift
+      return shiftedExpectedCurve.filter((value) => value !== null);
+    }
 
-    $(document).ready(function() {
-        updateChart();
-    });
-</script>
+    // Define the updateCombinedChart function
+    function updateCombinedChart() {
+      // Make AJAX requests to get data
+      $.when(
+        $.get(`/get-expected-curve/{{ patient.id }}/`),
+        $.get(
+          `/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`
+        )
+      ).done(function (expectedCurveResponse, dataPointsResponse) {
+        // Process the received data
+        let expectedCurveData = expectedCurveResponse[0].expected_curve;
+        const dataPoints = dataPointsResponse[0];
 
+        const maxLength = Math.max(
+          dataPoints.right.length,
+          dataPoints.left.length,
+          expectedCurveData.length
+        );
+        const labels = Array.from({ length: maxLength }, (_, i) => i);
 
+        const rightLegData = padArray(
+          dataPoints.right.map((point) => point.value),
+          maxLength
+        );
+        const leftLegData = padArray(
+          dataPoints.left.map((point) => point.value),
+          maxLength
+        );
 
-<script>
+        // Determine which knee curve is being observed
+        const observedLegData = showRightCurve ? rightLegData : leftLegData;
+        const maxObservedIndex = observedLegData.indexOf(
+          Math.max(...observedLegData)
+        );
+        const maxExpectedIndex = expectedCurveData.indexOf(
+          Math.max(...expectedCurveData)
+        );
 
-    $(document).ready(function() {
-        // Fetch expected curve data
-        $.get(`/get-expected-curve/{{ patient.id }}/`, function(curveData) {
-            const expectedCurveContext = document.getElementById('smoothedCurveChart').getContext('2d');
-            const expectedCurveChart = new Chart(expectedCurveContext, {
-                type: 'line',
-                data: {
-                    labels: Array.from({length: curveData.expected_curve.length}, (_, i) => i),
-                    datasets: [{
-                        label: 'Expected Curve',
-                        data: curveData.expected_curve,
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 2,
-                        fill: false,
-                        pointRadius: 0
-                    }]
+        // Calculate shift amount and shift expected curve data
+        const shiftAmount = maxObservedIndex - maxExpectedIndex;
+        const shiftedExpectedCurve = shiftExpectedCurve(
+          expectedCurveData,
+          shiftAmount
+        );
+
+        // Concatenate the new shifted expected curve data
+        const newExpected = shiftedExpectedCurve.concat(
+          removedExpectedCurveValues
+        );
+
+        // Destroy existing chart if it exists
+        if (combinedChart) {
+          combinedChart.destroy();
+        }
+
+        // Create new chart
+        combinedChart = new Chart(combinedChartContext, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Expected Curve",
+                data: newExpected,
+                borderColor: "rgba(255, 99, 132, 1)",
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0,
+              },
+              {
+                label: "Right Leg",
+                data: rightLegData,
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 1,
+                fill: false,
+                hidden: !showRightCurve, // Hide or show based on the state
+              },
+              {
+                label: "Left Leg",
+                data: leftLegData,
+                borderColor: "rgba(192, 75, 75, 1)",
+                borderWidth: 1,
+                fill: false,
+                hidden: showRightCurve, // Hide or show based on the state
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+              x: {
+                type: "linear",
+                title: {
+                  display: true,
+                  text: "Gait Cycle (%)",
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            title: {
-                                display: true,
-                                text: 'Gait Cycle (%)'
-                            },
-                            ticks: {
-                                callback: function(value, index, values) {
-                                    return (value).toFixed(2);
-                                }
-                            }
-                        },
-                        y: {
-                            beginAtZero: false,
-                            title: {
-                                display: true,
-                                text: 'Knee Angle (degrees)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Expected Knee Flexion Curve'
-                        },
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return `Gait Cycle: ${(context[0].parsed.x).toFixed(2)} %`;
-                                },
-                                label: function(context) {
-                                    return `Angle: ${context.parsed.y.toFixed(2)}°`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+              },
+              y: {
+                beginAtZero: false,
+                title: {
+                  display: true,
+                  text: "Knee Angle (degrees)",
+                },
+                ticks: {
+                  callback: function (value, index, values) {
+                    return value.toFixed(2) + "°";
+                  },
+                },
+              },
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: "Combined Knee Flexion Curves",
+              },
+              tooltip: {
+                callbacks: {
+                  title: function (context) {
+                    return `Gait Cycle: ${context[0].parsed.x.toFixed(2)} %`;
+                  },
+                  label: function (context) {
+                    return `${
+                      context.dataset.label
+                    }: ${context.parsed.y.toFixed(2)}°`;
+                  },
+                },
+              },
+            },
+          },
         });
-    });
-</script>
 
-<script>
-    $(document).ready(function() {
-        // Initialize variables
-        let start = 0;
-        const count = 110;
-        const combinedChartContext = document.getElementById('combinedChart').getContext('2d');
-        let combinedChart;
-        let showRightCurve = true; // Initial state
-        let removedExpectedCurveValues = []; // Variable to store removed expected curve values
+        // Optional: Log or display the removed values for debugging or analysis
+        console.log(
+          "Removed Expected Curve Values:",
+          removedExpectedCurveValues
+        );
+      });
+    }
 
-        // Helper function to pad an array to a target length
-        function padArray(arr, targetLength, padValue = null) {
-            const paddedArr = [...arr];
-            while (paddedArr.length < targetLength) {
-                paddedArr.push(padValue);
-            }
-            return paddedArr;
-        }
+    // Initial chart update
+    updateCombinedChart();
 
-        // Helper function to shift expected curve data
-        function shiftExpectedCurve(expectedCurveData, shiftAmount) {
-            const shiftedExpectedCurve = new Array(expectedCurveData.length).fill(null);
-
-            for (let i = 0; i < expectedCurveData.length; i++) {
-                const newIndex = i + shiftAmount;
-                if (newIndex >= 0 && newIndex < expectedCurveData.length) {
-                    shiftedExpectedCurve[newIndex] = expectedCurveData[i];
-                } else {
-                    // Store the value that would be removed after shifting
-                    removedExpectedCurveValues.push(expectedCurveData[i]);
-                }
-            }
-
-            // Remove null values resulting from the shift
-            return shiftedExpectedCurve.filter(value => value !== null);
-        }
-
-        // Define the updateCombinedChart function
-        function updateCombinedChart() {
-            // Make AJAX requests to get data
-            $.when(
-                $.get(`/get-expected-curve/{{ patient.id }}/`),
-                $.get(`/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`)
-            ).done(function(expectedCurveResponse, dataPointsResponse) {
-                // Process the received data
-                let expectedCurveData = expectedCurveResponse[0].expected_curve;
-                const dataPoints = dataPointsResponse[0];
-
-                const maxLength = Math.max(
-                    dataPoints.right.length,
-                    dataPoints.left.length,
-                    expectedCurveData.length
-                );
-                const labels = Array.from({ length: maxLength }, (_, i) => i);
-
-                const rightLegData = padArray(dataPoints.right.map(point => point.value), maxLength);
-                const leftLegData = padArray(dataPoints.left.map(point => point.value), maxLength);
-
-                // Determine which knee curve is being observed
-                const observedLegData = showRightCurve ? rightLegData : leftLegData;
-                const maxObservedIndex = observedLegData.indexOf(Math.max(...observedLegData));
-                const maxExpectedIndex = expectedCurveData.indexOf(Math.max(...expectedCurveData));
-
-                // Calculate shift amount and shift expected curve data
-                const shiftAmount = maxObservedIndex - maxExpectedIndex;
-                const shiftedExpectedCurve = shiftExpectedCurve(expectedCurveData, shiftAmount);
-
-                // Concatenate the new shifted expected curve data
-                const newExpected = shiftedExpectedCurve.concat(removedExpectedCurveValues);
-
-                // Destroy existing chart if it exists
-                if (combinedChart) {
-                    combinedChart.destroy();
-                }
-
-                // Create new chart
-                combinedChart = new Chart(combinedChartContext, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'Expected Curve',
-                                data: newExpected,
-                                borderColor: 'rgba(255, 99, 132, 1)',
-                                borderWidth: 2,
-                                fill: false,
-                                pointRadius: 0
-                            },
-                            {
-                                label: 'Right Leg',
-                                data: rightLegData,
-                                borderColor: 'rgba(75, 192, 192, 1)',
-                                borderWidth: 1,
-                                fill: false,
-                                hidden: !showRightCurve // Hide or show based on the state
-                            },
-                            {
-                                label: 'Left Leg',
-                                data: leftLegData,
-                                borderColor: 'rgba(192, 75, 75, 1)',
-                                borderWidth: 1,
-                                fill: false,
-                                hidden: showRightCurve // Hide or show based on the state
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        scales: {
-                            x: {
-                                type: 'linear',
-                                title: {
-                                    display: true,
-                                    text: 'Gait Cycle (%)'
-                                }
-                            },
-                            y: {
-                                beginAtZero: false,
-                                title: {
-                                    display: true,
-                                    text: 'Knee Angle (degrees)'
-                                },
-                                ticks: {
-                                    callback: function(value, index, values) {
-                                        return value.toFixed(2) + '°';
-                                    }
-                                },
-                            }
-                        },
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Combined Knee Flexion Curves'
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    title: function(context) {
-                                        return `Gait Cycle: ${context[0].parsed.x.toFixed(2)} %`;
-                                    },
-                                    label: function(context) {
-                                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}°`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // Optional: Log or display the removed values for debugging or analysis
-                console.log('Removed Expected Curve Values:', removedExpectedCurveValues);
-            });
-        }
-
-        // Initial chart update
+    // Add event listeners for navigation buttons
+    $("#prevCombined").click(function () {
+      if (start >= count) {
+        start -= count;
         updateCombinedChart();
-
-        // Add event listeners for navigation buttons
-        $('#prevCombined').click(function() {
-            if (start >= count) {
-                start -= count;
-                updateCombinedChart();
-            }
-        });
-
-        $('#nextCombined').click(function() {
-            start += count;
-            updateCombinedChart();
-        });
-        // Toggle curve visibility
-        $('#toggleCurve').click(function() {
-            showRightCurve = !showRightCurve;
-            $(this).text(showRightCurve ? 'Show Left Curve' : 'Show Right Curve');
-            updateCombinedChart();
-        });
+      }
     });
+
+    $("#nextCombined").click(function () {
+      start += count;
+      updateCombinedChart();
+    });
+    // Toggle curve visibility
+    $("#toggleCurve").click(function () {
+      showRightCurve = !showRightCurve;
+      $(this).text(showRightCurve ? "Show Left Curve" : "Show Right Curve");
+      updateCombinedChart();
+    });
+  });
 </script>
 
-
-{% endblock %}
-]
+{% endblock %} ]
