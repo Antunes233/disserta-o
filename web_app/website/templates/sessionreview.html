@@ -1,5 +1,9 @@
-{% extends "main.html" %} {% load static %} {% block title %}Session Review{%
-endblock %} {% block content %}
+{% extends "main.html" %} 
+{% load static %} 
+
+{% block title %}Session Review{%endblock %} 
+
+{% block content %}
 <link rel="stylesheet" href="{% static 'css/sessionreview.css' %}" />
 
 <div class="top-bar">
@@ -20,7 +24,7 @@ endblock %} {% block content %}
 <div class="canvas-container">
   <canvas
     id="dataChart"
-    width="1300"
+    width="1000"
     height="400"
     class="chart-canvas"
   ></canvas>
@@ -49,17 +53,14 @@ endblock %} {% block content %}
   <div class="chart-controls">
     <button id="prevCombined" class="chart-button">Previous</button>
     <button id="nextCombined" class="chart-button">Next</button>
-    <button id="toggleCurve" class="chart-button">Show Right Curve</button>
+    <!-- <button id="toggleCurve" class="chart-button">Show Right Curve</button> -->
   </div>
 </div>
 
-<!-- <div id="container_2">
-    <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve }}" >
+<div class="canvas-container">
+  <canvas id="comparisonChart" width="800" height="400" class="chart-canvas"></canvas>
 </div>
 
-<div id="container_2">
-    <img id="expected_curve" src = "data:image/png;base64,{{ expected_curve_1 }}" >
-</div> -->
 
 <!-- Add a form for session notes -->
 <div class="notes-section">
@@ -79,39 +80,6 @@ endblock %} {% block content %}
   </form>
 </div>
 
-<!-- Add a checkbox to enable/disable zoom -->
-<div class="zoom-control">
-  <label for="zoom-checkbox">Enable Zoom</label>
-  <input type="checkbox" id="zoom-checkbox" />
-</div>
-
-<script>
-  const myimg = document.getElementById("main_plot");
-  const container = document.getElementById("container");
-  const zoomCheckbox = document.getElementById("zoom-checkbox");
-
-  function onZoom(e) {
-    if (zoomCheckbox.checked) {
-      const rect = container.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      myimg.style.transformOrigin = `${x}px ${y}px`;
-      myimg.style.transform = `scale(1.5)`;
-    }
-  }
-
-  function offZoom(e) {
-    if (zoomCheckbox.checked) {
-      myimg.style.transformOrigin = `center center`;
-      myimg.style.transform = `scale(1)`;
-    }
-  }
-
-  container.addEventListener("mousemove", onZoom);
-  container.addEventListener("mouseleave", offZoom);
-  container.addEventListener("mouseover", onZoom);
-</script>
 
 <!-- ---------------------------------------- -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -152,9 +120,17 @@ endblock %} {% block content %}
               return value / 100;
             },
           },
+          title: {
+                display: true,
+                text: "Time (seconds)",
+            },
         },
         y: {
           beginAtZero: true,
+          title: {
+                display: true,
+                text: "Knee Angle (degrees)",
+              },
         },
       },
     },
@@ -278,122 +254,149 @@ endblock %} {% block content %}
 </script>
 
 <script>
-  $(document).ready(function () {
-    // Initialize variables
-    let start = 0;
-    const count = 110;
-    const combinedChartContext = document
-      .getElementById("combinedChart")
-      .getContext("2d");
-    let combinedChart;
-    let showRightCurve = true; // Initial state
-    let removedExpectedCurveValues = []; // Variable to store removed expected curve values
+let combinedChart;
+let currentIndexRight = 0;
+let currentIndexLeft = 0;
+let splitIndicesLeft = [];
+let splitIndicesRight = [];
 
-    // Helper function to pad an array to a target length
-    function padArray(arr, targetLength, padValue = null) {
-      const paddedArr = [...arr];
-      while (paddedArr.length < targetLength) {
-        paddedArr.push(padValue);
-      }
-      return paddedArr;
-    }
+function getSplitIndexes(array) {
+  var prevMax = -1;
+  var prevMaxValue = -1;
+  var postMax = -1;
+  var postMaxValue = -1;
+  var curMin = -1;
+  var curMinValue = -1;
+  var curMaxValue = -1;
+  var curMax = -1;
+  var checkingMax = true;
 
-    // Helper function to shift expected curve data
-    function shiftExpectedCurve(expectedCurveData, shiftAmount) {
-      const shiftedExpectedCurve = new Array(expectedCurveData.length).fill(
-        null
-      );
+  var minlocations = [];
 
-      for (let i = 0; i < expectedCurveData.length; i++) {
-        const newIndex = i + shiftAmount;
-        if (newIndex >= 0 && newIndex < expectedCurveData.length) {
-          shiftedExpectedCurve[newIndex] = expectedCurveData[i];
+  for (var iterator = 0; iterator < array.length; iterator++) {
+    if (checkingMax) {
+      if (array[iterator] > curMaxValue || iterator === 0) {
+        curMax = iterator;
+        curMaxValue = array[iterator];
+        if (curMinValue > -1) {
+          postMax = iterator;
+          postMaxValue = array[iterator];
         } else {
-          // Store the value that would be removed after shifting
-          removedExpectedCurveValues.push(expectedCurveData[i]);
+          prevMaxValue = array[iterator];
+          prevMax = iterator;
         }
       }
-
-      // Remove null values resulting from the shift
-      return shiftedExpectedCurve.filter((value) => value !== null);
+      if (curMax > -1 && array[iterator] < curMaxValue) {
+        checkingMax = false;
+        curMaxValue = -1;
+        if (prevMaxValue > 20 && postMaxValue > 5 && postMaxValue < 20 && prevMaxValue > postMaxValue) {
+          minlocations.push(curMin);
+        }
+        if (postMax > -1) {
+          prevMax = postMax;
+          prevMaxValue = postMaxValue;
+        }
+        curMin = -1;
+        curMinValue = -1;
+        postMax = -1;
+        postMaxValue = -1;
+      }
+    } else {
+      if (array[iterator] <= curMinValue || curMinValue === -1) {
+        curMin = iterator;
+        curMinValue = array[iterator];
+      }
+      if (curMinValue < 25 && curMin > -1 && array[iterator] > curMinValue) {
+        checkingMax = true;
+        curMax = -1;
+        curMaxValue = -1;
+      }
     }
+  }
 
-    // Define the updateCombinedChart function
-    function updateCombinedChart() {
-      // Make AJAX requests to get data
-      $.when(
-        $.get(`/get-expected-curve/{{ patient.id }}/`),
-        $.get(
-          `/get-data-points/${start}/${count}/{{ patient.id }}/{{ session.id }}/`
-        )
-      ).done(function (expectedCurveResponse, dataPointsResponse) {
-        // Process the received data
-        let expectedCurveData = expectedCurveResponse[0].expected_curve;
-        const dataPoints = dataPointsResponse[0];
+  return minlocations;
+}
 
-        const maxLength = Math.max(
-          dataPoints.right.length,
-          dataPoints.left.length,
-          expectedCurveData.length
-        );
-        const labels = Array.from({ length: maxLength }, (_, i) => i);
+function interpolateData(data, targetLength) {
+  const interpolatedData = [];
+  const step = data.length / (targetLength - 1);
 
-        const rightLegData = padArray(
-          dataPoints.right.map((point) => point.value),
-          maxLength
-        );
-        const leftLegData = padArray(
-          dataPoints.left.map((point) => point.value),
-          maxLength
-        );
+  for (let i = 0; i < targetLength; i++) {
+    const index = i * step;
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.ceil(index);
 
-        // Determine which knee curve is being observed
-        const observedLegData = showRightCurve ? rightLegData : leftLegData;
-        const maxObservedIndex = observedLegData.indexOf(
-          Math.max(...observedLegData)
-        );
-        const maxExpectedIndex = expectedCurveData.indexOf(
-          Math.max(...expectedCurveData)
-        );
+    if (upperIndex >= data.length) {
+      interpolatedData.push(data[data.length - 1]);
+    } else if (lowerIndex === upperIndex) {
+      interpolatedData.push(data[lowerIndex]);
+    } else {
+      const fraction = index - lowerIndex;
+      const value =
+        data[lowerIndex] + (data[upperIndex] - data[lowerIndex]) * fraction;
+      interpolatedData.push(value);
+    }
+  }
 
-        // Calculate shift amount and shift expected curve data
-        const shiftAmount = maxObservedIndex - maxExpectedIndex;
-        const shiftedExpectedCurve = shiftExpectedCurve(
-          expectedCurveData,
-          shiftAmount
-        );
+  return interpolatedData;
+}
 
-        // Concatenate the new shifted expected curve data
-        const newExpected = shiftedExpectedCurve.concat(
-          removedExpectedCurveValues
-        );
+function fetchAllDataPoints() {
+  $.ajax({
+    url: "/get-all-data-points/{{ patient.id }}/{{ session.id }}/",
+    type: "GET",
+    success: function(data) {
+      const rightLegData = data.right;
+      const leftLegData = data.left;
+
+      splitIndicesRight = getSplitIndexes(rightLegData);
+      splitIndicesLeft = getSplitIndexes(leftLegData);
+
+      updateCombinedChart();
+    },
+    error: function(xhr, status, error) {
+      console.error("Error fetching data points:", error);
+    }
+  });
+}
+
+function updateCombinedChart() {
+  const maxIndexRight = splitIndicesRight.length - 1;
+  const maxIndexLeft = splitIndicesLeft.length - 1;
+
+  if (currentIndexRight >= 0 && currentIndexRight < maxIndexRight && currentIndexLeft >= 0 && currentIndexLeft < maxIndexLeft) {
+    const startIndexRight = splitIndicesRight[currentIndexRight];
+    const endIndexRight = splitIndicesRight[currentIndexRight + 1];
+    const startIndexLeft = splitIndicesLeft[currentIndexLeft];
+    const endIndexLeft = splitIndicesLeft[currentIndexLeft + 1];
+    // Make AJAX request to get right leg data between indexes
+    $.get(`/get-data-between-indexes-right/{{ patient.id }}/{{ session.id }}/${splitIndicesRight[currentIndexRight]}/${splitIndicesRight[currentIndexRight + 1]}/`, function (rightData) {
+      const rightLegData = interpolateData(rightData.right, 101);
+
+      // Make AJAX request to get left leg data between indexes
+      $.get(`/get-data-between-indexes-left/{{ patient.id }}/{{ session.id }}/${splitIndicesLeft[currentIndexLeft]}/${splitIndicesLeft[currentIndexLeft + 1]}/`, function (leftData) {
+        const leftLegData = interpolateData(leftData.left, 101);
+
+        const labels = Array.from({ length: 101 }, (_, i) => i);
 
         // Destroy existing chart if it exists
         if (combinedChart) {
           combinedChart.destroy();
         }
 
-        // Create new chart
+        // Create new chart with interpolated data
+        const combinedChartContext = document.getElementById("combinedChart").getContext("2d");
         combinedChart = new Chart(combinedChartContext, {
           type: "line",
           data: {
             labels: labels,
             datasets: [
               {
-                label: "Expected Curve",
-                data: newExpected,
-                borderColor: "rgba(255, 99, 132, 1)",
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 0,
-              },
-              {
                 label: "Right Leg",
                 data: rightLegData,
                 borderColor: "rgba(75, 192, 192, 1)",
                 borderWidth: 1,
                 fill: false,
-                hidden: !showRightCurve, // Hide or show based on the state
               },
               {
                 label: "Left Leg",
@@ -401,7 +404,6 @@ endblock %} {% block content %}
                 borderColor: "rgba(192, 75, 75, 1)",
                 borderWidth: 1,
                 fill: false,
-                hidden: showRightCurve, // Hide or show based on the state
               },
             ],
           },
@@ -432,7 +434,7 @@ endblock %} {% block content %}
             plugins: {
               title: {
                 display: true,
-                text: "Combined Knee Flexion Curves",
+                text: "Knee Flexion Curves",
               },
               tooltip: {
                 callbacks: {
@@ -440,9 +442,7 @@ endblock %} {% block content %}
                     return `Gait Cycle: ${context[0].parsed.x.toFixed(2)} %`;
                   },
                   label: function (context) {
-                    return `${
-                      context.dataset.label
-                    }: ${context.parsed.y.toFixed(2)}°`;
+                    return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}°`;
                   },
                 },
               },
@@ -450,36 +450,112 @@ endblock %} {% block content %}
           },
         });
 
-        // Optional: Log or display the removed values for debugging or analysis
-        console.log(
-          "Removed Expected Curve Values:",
-          removedExpectedCurveValues
-        );
+        // Update the comparison chart
+        updateComparisonChart(rightLegData, leftLegData);
       });
-    }
-
-    // Initial chart update
-    updateCombinedChart();
-
-    // Add event listeners for navigation buttons
-    $("#prevCombined").click(function () {
-      if (start >= count) {
-        start -= count;
-        updateCombinedChart();
-      }
     });
+  }
+}
 
-    $("#nextCombined").click(function () {
-      start += count;
-      updateCombinedChart();
-    });
-    // Toggle curve visibility
-    $("#toggleCurve").click(function () {
-      showRightCurve = !showRightCurve;
-      $(this).text(showRightCurve ? "Show Left Curve" : "Show Right Curve");
-      updateCombinedChart();
-    });
+let comparisonChart;
+
+function updateComparisonChart(rightData, leftData) {
+  // Destroy existing chart if it exists
+  if (comparisonChart) {
+    comparisonChart.destroy();
+  }
+
+  // Calculate the mean value between the left and right curves
+  const meanData = rightData.map((x, i) => (x + leftData[i]) / 2);
+
+  // Create new chart
+  const comparisonChartContext = document.getElementById("comparisonChart").getContext("2d");
+  comparisonChart = new Chart(comparisonChartContext, {
+    type: "line",
+    data: {
+      datasets: [
+        {
+          label: "Symmetry",
+          data: meanData.map((mean, i) => ({ x: rightData[i], y: mean })),
+          backgroundColor: "rgba(153, 102, 255, 0.5)",
+          borderColor: "rgba(153, 102, 255, 1)",
+          borderWidth: 1,
+          pointRadius: 2,
+          cubicInterpolationMode: "monotone",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          type: "linear",
+          title: {
+            display: true,
+            text: "Right Knee Angle (degrees)",
+          },
+          ticks: {
+            callback: function (value, index, values) {
+              return value.toFixed(2) + "°";
+            },
+          },
+        },
+        y: {
+          type: "linear",
+          title: {
+            display: true,
+            text: "Mean Knee Angle (degrees)",
+          },
+          ticks: {
+            callback: function (value, index, values) {
+              return value.toFixed(2) + "°";
+            },
+          },
+        },
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: "Symmetric plot",
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const label = context.dataset.label || "";
+              const rightAngle = context.parsed.x.toFixed(2) + "°";
+              const meanAngle = context.parsed.y.toFixed(2) + "°";
+              return `${label}: Right Angle = ${rightAngle}, Mean Angle = ${meanAngle}`;
+            },
+          },
+        },
+      },
+    },
   });
-</script>
+}
 
-{% endblock %} ]
+// Add event listeners for navigation buttons
+$("#prevCombined").click(function () {
+  if (currentIndexRight > 0) {
+    currentIndexRight--;
+    currentIndexLeft--;
+    updateCombinedChart();
+  }
+});
+
+$("#nextCombined").click(function () {
+  const maxIndexRight = splitIndicesRight.length - 2;
+  const maxIndexLeft = splitIndicesLeft.length - 2;
+
+  if (currentIndexRight < maxIndexRight && currentIndexLeft < maxIndexLeft) {
+    currentIndexRight++;
+    currentIndexLeft++;
+    updateCombinedChart();
+  }
+});
+
+$(document).ready(function () {
+  fetchAllDataPoints();
+});
+</script>
+{% endblock %}
